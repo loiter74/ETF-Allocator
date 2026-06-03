@@ -1,0 +1,13 @@
+{
+  "name": "ETF Allocator",
+  "short_name": "ETF配",
+  "description": "ETF月度新增资金配置看板",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8F6FF",
+  "theme_color": "#7C3AED",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

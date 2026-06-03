@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+
+# Database
+*.db
+*.db-journal
+*.db-wal
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Node
+node_modules/
+
+# Logs
+*.log
+*.log.*
+
+# Output
+ETF-Allocator/dashboard/dist/
+.gstack/
+
+# Playwright
+.playwright-mcp/
+.playwright/
+
+# Sensitive
+.env
+*.local
+secrets.*
+nul

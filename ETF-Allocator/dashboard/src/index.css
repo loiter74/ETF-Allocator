@@ -1,0 +1,147 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap');
+@import "tailwindcss";
+@import "katex/dist/katex.min.css";
+
+/* ════════════════════════════════════════════════════════════════
+   ETF-Allocator Design Tokens — oklch 220° chromatic system
+   ════════════════════════════════════════════════════════════════ */
+@theme {
+  /* ── Typography ── */
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
+
+  /* ── Chromatic primary: hue 220° 蓝紫 ── */
+  --color-chromatic-50:  oklch(0.97 0.01 220);
+  --color-chromatic-100: oklch(0.93 0.02 220);
+  --color-chromatic-200: oklch(0.85 0.05 220);
+  --color-chromatic-300: oklch(0.75 0.10 220);
+  --color-chromatic-400: oklch(0.63 0.15 220);
+  --color-chromatic-500: oklch(0.53 0.18 220);
+  --color-chromatic-600: oklch(0.42 0.18 220);
+  --color-chromatic-700: oklch(0.32 0.14 220);
+  --color-chromatic-800: oklch(0.22 0.08 220);
+  --color-chromatic-900: oklch(0.13 0.04 220);
+  --color-chromatic-950: oklch(0.07 0.02 220);
+
+  /* ── Surface 背景层级 — 亮色默认 ── */
+  --color-surface-0: oklch(0.99 0.008 90);
+  --color-surface-1: oklch(0.99 0.003 90);
+  --color-surface-2: oklch(0.96 0.005 90);
+  --color-surface-3: oklch(0.92 0.008 90);
+
+  /* ── 语义色：信号 ── */
+  --color-safe:  oklch(0.65 0.18 145);
+  --color-warn:  oklch(0.70 0.16 85);
+  --color-dang:  oklch(0.58 0.22 28);
+
+  /* ── 语义色：金融 ── */
+  --color-positive: oklch(0.65 0.18 145);   /* 涨 / 收益 */
+  --color-negative: oklch(0.58 0.22 28);     /* 跌 / 亏损 */
+  --color-neutral:  oklch(0.60 0.01 220);    /* 平 / 无变化 */
+
+  /* ── 语义色：UI ── */
+  --color-accent:    oklch(0.53 0.18 220);   /* 主强调 = chromatic-500 */
+  --color-accent-light: oklch(0.63 0.15 220); /* 次强调 = chromatic-400 */
+  --color-muted:     oklch(0.65 0.01 90);   /* 弱化文字 */
+  --color-border:    oklch(0.85 0.02 90);    /* 卡片边框 */
+
+  /* ── 数据可视化色板：series 1-6 ── */
+  --color-series-1: oklch(0.63 0.15 220);  /* 蓝紫 — 默认/白酒 */
+  --color-series-2: oklch(0.65 0.18 145);  /* 绿   — 银行/红利 */
+  --color-series-3: oklch(0.70 0.16 85);   /* 琥珀 — 沪深300 */
+  --color-series-4: oklch(0.62 0.20 310);  /* 玫紫 — 科创50 */
+  --color-series-5: oklch(0.65 0.14 195);  /* 青   — 科创50 alt */
+  --color-series-6: oklch(0.58 0.22 28);   /* 红   — 国债/风险 */
+}
+
+/* ════════════════════════════════════════════════════════════════
+   Light / Dark 模式
+   ════════════════════════════════════════════════════════════════ */
+:root {
+  color-scheme: light;
+  --bg-base: #FFFBF0;
+  --fg-base: #1F2937;
+}
+html {
+  background: #FFFBF0;
+  color: #1F2937;
+}
+
+html.dark {
+  color-scheme: dark;
+  --bg-base: oklch(0.10 0.01 220);
+  --fg-base: oklch(0.93 0.02 220);
+  background: var(--bg-base);
+  color: var(--fg-base);
+  --color-surface-0: oklch(0.10 0.01 220);
+  --color-surface-1: oklch(0.13 0.02 220);
+  --color-surface-2: oklch(0.16 0.02 220);
+  --color-surface-3: oklch(0.20 0.03 220);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   Glass Card — 玻璃态卡片
+   ════════════════════════════════════════════════════════════════ */
+.glass-card {
+  background: oklch(0.99 0.002 220 / 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid oklch(0.85 0.02 220 / 0.50);
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px oklch(0.15 0.02 220 / 0.08);
+  transition: all 0.3s ease;
+}
+.glass-card:hover {
+  box-shadow: 0 4px 12px oklch(0.15 0.02 220 / 0.12);
+}
+
+html.dark .glass-card {
+  background: oklch(0.13 0.02 220 / 0.70);
+  border-color: oklch(0.30 0.03 220 / 0.40);
+  box-shadow: 0 1px 3px oklch(0.05 0.01 220 / 0.30);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   Gradient Text — 强调文字
+   ════════════════════════════════════════════════════════════════ */
+.gradient-text {
+  background: linear-gradient(
+    135deg,
+    var(--color-accent),
+    var(--color-accent-light)
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   Grid Placeholder — react-grid-layout 拖拽占位
+   ════════════════════════════════════════════════════════════════ */
+.react-grid-placeholder {
+  background: oklch(0.53 0.18 220 / 0.12) !important;
+  border: 2px dashed oklch(0.53 0.18 220 / 0.35) !important;
+  border-radius: 1rem !important;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   Ripple Grid — 暗色模式点阵背景
+   ════════════════════════════════════════════════════════════════ */
+html.dark .ripple-grid {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    oklch(0.53 0.18 220 / 0.12) 1px,
+    transparent 0
+  );
+  background-size: 40px 40px;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   Global
+   ════════════════════════════════════════════════════════════════ */
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+}
+#root { min-height: 100vh; }
+.tabular-nums { font-variant-numeric: tabular-nums; }
