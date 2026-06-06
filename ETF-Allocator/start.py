@@ -16,19 +16,23 @@ NPM_CMD = "npm.cmd" if sys.platform == "win32" else "npm"
 
 # ── 1. 清理旧进程 ──
 def kill_on_port(port: int):
-    """Windows: kill process listening on given port."""
+    """Windows: kill ALL processes listening on given port."""
     try:
         import subprocess as sp
+        # 使用更宽泛的匹配，找到所有占用端口的进程
         result = sp.run(
-            f'netstat -ano | findstr ":{port}" | findstr LISTENING',
+            f'netstat -ano | findstr ":{port}"',
             shell=True, capture_output=True, text=True
         )
+        killed_pids = set()
         for line in result.stdout.strip().split('\n'):
             parts = line.strip().split()
-            if len(parts) >= 5:
+            if len(parts) >= 5 and 'LISTENING' in line:
                 pid = parts[-1]
-                sp.run(f'taskkill //F //PID {pid}', shell=True,
-                       capture_output=True, stderr=subprocess.DEVNULL)
+                if pid not in killed_pids and pid != '0':
+                    sp.run(f'taskkill //F //PID {pid}', shell=True,
+                           capture_output=True, stderr=subprocess.DEVNULL)
+                    killed_pids.add(pid)
     except Exception:
         pass
 
@@ -45,7 +49,12 @@ for port in (8000, 5173):
     if not is_port_free(port):
         print(f"  Port {port} in use — cleaning up...")
         kill_on_port(port)
-        time.sleep(1)
+        time.sleep(0.5)
+        # 二次确认
+        if not is_port_free(port):
+            print(f"  WARNING: Port {port} still in use, waiting...")
+            time.sleep(2)
+            kill_on_port(port)
 
 # ── 2. 启动后端 ──
 print("Starting API server (port 8000)...")
@@ -70,12 +79,16 @@ print(" ready!")
 print("Starting frontend (port 5173, may take 10-30s on first run)...")
 print("  [Tip] First launch is slow due to dependency optimization.", flush=True)
 if sys.platform == "win32":
+    # 使用绝对路径避免%~dp0解析问题
+    NPM_FULL_PATH = str(NODE_PATH / NPM_CMD)
     ui = subprocess.Popen(
-        f'"{NPM_CMD}" run dev',
+        f'"{NPM_FULL_PATH}" run dev',
         cwd=str(ROOT / "dashboard"),
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
         bufsize=1, universal_newlines=True,
         shell=True,
+        encoding='utf-8',
+        errors='replace',  # 遇到无法解码的字符时替换而不是报错
     )
 else:
     ui = subprocess.Popen(
@@ -83,6 +96,8 @@ else:
         cwd=str(ROOT / "dashboard"),
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
         bufsize=1, universal_newlines=True,
+        encoding='utf-8',
+        errors='replace',
     )
 
 # 等前端就绪，同时回显 Vite 关键日志
@@ -124,7 +139,13 @@ try:
                 sys.exit(1)
             line = proc.stdout.readline()
             if line:
-                print(f"{label} {line.rstrip()}", flush=True)
+                # 处理编码问题：替换无法在终端显示的字符
+                safe_line = line.rstrip().encode('utf-8', errors='replace').decode('utf-8')
+                try:
+                    print(f"{label} {safe_line}", flush=True)
+                except UnicodeEncodeError:
+                    # 如果终端无法显示，使用ASCII安全模式
+                    print(f"{label} {safe_line.encode('ascii', errors='replace').decode('ascii')}", flush=True)
 except KeyboardInterrupt:
     print("\nShutting down...")
     api.terminate()
