@@ -234,3 +234,67 @@ class TestEdgeCases:
         )
         assert "100%" in report
         assert "0 元" in report  # 国债 = 0
+
+
+# ════════════════════════════════════════════════════════════════
+# 场景 5: 国债执行状态（v1.3 新增）
+# ════════════════════════════════════════════════════════════════
+
+class TestBondExecutionStatus:
+    """v1.3: 国债执行状态区块渲染。"""
+
+    def _make_bond_status(self, **overrides):
+        status = {
+            "balance": 11000.0,
+            "min_purchase": 14000,
+            "total_interest": 126.0,
+            "can_buy": False,
+            "lots_available": 0,
+        }
+        status.update(overrides)
+        return status
+
+    def test_bond_status_section_present(self):
+        """传入 bond_status 时应显示国债执行状态区块。"""
+        report = _generate_standard_report(bond_status=self._make_bond_status())
+        assert "【国债执行状态】" in report
+        assert "累积制" in report
+
+    def test_bond_status_shows_deposit_amount(self):
+        """显示本月固收应配金额。"""
+        report = _generate_standard_report(bond_status=self._make_bond_status())
+        assert "本月固收应配" in report
+
+    def test_bond_status_shows_interest(self):
+        """有逆回购收益时显示。"""
+        report = _generate_standard_report(bond_status=self._make_bond_status(total_interest=126.0))
+        assert "逆回购收益" in report
+
+    def test_bond_status_no_buy(self):
+        """未触发买入时显示等待信息。"""
+        report = _generate_standard_report(
+            bond_status=self._make_bond_status(can_buy=False, balance=5000)
+        )
+        assert "暂不买入" in report
+        assert "距下一手门槛" in report
+
+    def test_bond_status_buy_triggered(self):
+        """触发买入时显示买入信息。"""
+        report = _generate_standard_report(
+            bond_status=self._make_bond_status(can_buy=True, lots_available=1, balance=17000)
+        )
+        assert "买入 1 手" in report
+        assert "511010" in report
+
+    def test_bond_status_shows_remaining_after_buy(self):
+        """买入后有余留时显示余留金额。"""
+        report = _generate_standard_report(
+            bond_status=self._make_bond_status(can_buy=True, lots_available=1, balance=17000)
+        )
+        assert "买入后余留" in report
+
+    def test_bond_status_backward_compatible(self):
+        """不传 bond_status 时报告正常生成（向后兼容）。"""
+        report = _generate_standard_report()
+        assert "ETF配置月报" in report
+        assert "【国债执行状态】" not in report

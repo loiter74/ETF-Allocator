@@ -51,6 +51,7 @@ from src.constraints.portfolio import apply_constraints
 from src.allocation.allocator import allocate
 from src.rebalance.checker import check_rebalance
 from src.reports.monthly import generate_report
+from src.execution.bond_liquidity import BondAccumulator
 
 
 DB_PATH = PROJECT_ROOT / "data" / "db" / "etf_data.db"
@@ -461,6 +462,10 @@ def run_report(verbose: bool = False, demo: bool = False,
     print("[STEP 6] 风险控制...")
     volatilities = {name: fac.get("volatility") for name, fac in factors.items()}
     limits = all_effective_limits(volatilities)
+    # v1.3: 不在RISK_CONTROL中的资产使用TARGET_BANDS上限作为fallback
+    from config.settings import TARGET_BANDS as _TB
+    limits = {n: (v if v is not None else _TB.get(n, (0, 0.30))[1])
+              for n, v in limits.items()}
     if verbose:
         for name, lim in limits.items():
             print(f"  {name}: {lim:.0%}" if lim else f"  {name}: N/A")
@@ -487,9 +492,28 @@ def run_report(verbose: bool = False, demo: bool = False,
         equity_budget=equity_budget,
     )
 
-    # 温度计决定的债份额
+    # v1.3: 国债通过累积池执行，解决场内最低买入门槛
     bond_budget = NEW_MONEY * bond_ratio
-    allocation["国债ETF"] = allocation.get("国债ETF", 0) + bond_budget
+    bond_alloc_from_allocator = allocation.pop("国债ETF", 0)  # 分配层溢出
+    total_bond_deposit = bond_budget + bond_alloc_from_allocator
+
+    # 加载累积池状态（流A跨月持久化）
+    accumulator_path = str(PROJECT_ROOT / "data" / "db" / "bond_accumulator.json")
+    bond_accumulator = BondAccumulator.load(accumulator_path)
+    bond_accumulator.deposit(total_bond_deposit)
+    bond_interest = bond_accumulator.accrue_interest()
+    bond_action = bond_accumulator.execute()
+
+    if bond_action.buy:
+        allocation["国债ETF"] = bond_action.amount
+    # 未触发买入时，allocation 中不包含国债ETF
+
+    bond_status = bond_accumulator.get_status()
+    bond_status["deposit_this_month"] = total_bond_deposit
+    bond_status["interest_this_month"] = bond_interest
+
+    # 保存累积池状态
+    bond_accumulator.save(accumulator_path)
 
     if verbose:
         for name, amt in allocation.items():
@@ -514,6 +538,7 @@ def run_report(verbose: bool = False, demo: bool = False,
         weights=current_weights,
         upper_limits=limits,
         constraints_result=constraints_result,
+        bond_status=bond_status,
     )
     print(report)
 

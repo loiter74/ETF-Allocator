@@ -40,9 +40,9 @@ class TestEffectiveUpperLimit:
         assert result == 0.25
 
     def test_bond_no_vol_constraint(self):
-        """国债不受波动率影响"""
+        """v1.3: 国债已从RISK_CONTROL移除，不受波动率控制"""
         result = effective_upper_limit("国债ETF", 0.50)
-        assert result == 0.20  # 常态上限
+        assert result is None  # 不在RISK_CONTROL中，返回None
 
     def test_none_vol_no_change(self):
         """波动率数据缺失 → 保持常态上限"""

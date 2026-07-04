@@ -101,6 +101,7 @@ def generate_report(
     weights: dict,
     upper_limits: dict,
     constraints_result: dict,
+    bond_status: Optional[dict] = None,
 ) -> str:
     """
     生成月度配置报告，完全匹配设计文档格式。
@@ -123,6 +124,7 @@ def generate_report(
         weights: {asset_name: current_weight}
         upper_limits: {asset_name: effective_upper_limit}
         constraints_result: constraints.apply_constraints 输出
+        bond_status: BondAccumulator.get_status() 输出（可选，向后兼容）
 
     Returns:
         格式化的报告字符串
@@ -160,8 +162,35 @@ def generate_report(
     bond_amount = new_money - equity_amount
     lines.append(f"【本月新增资金】 {_fmt_amount(new_money)} 元")
     lines.append(f"├─ 权益投资: {_fmt_amount(equity_amount)} 元")
-    lines.append(f"└─ 国债: {_fmt_amount(bond_amount)} 元")
+    lines.append(f"└─ 固收应配: {_fmt_amount(bond_amount)} 元")
     lines.append("")
+
+    # ── 【国债执行状态】 ──
+    if bond_status is not None:
+        lines.append("【国债执行状态】（模式：累积制）")
+        balance = bond_status.get("balance", 0)
+        total_interest = bond_status.get("total_interest", 0)
+        min_purchase = bond_status.get("min_purchase", 14000)
+        can_buy = bond_status.get("can_buy", False)
+        lots = bond_status.get("lots_available", 0)
+
+        pool_total = balance + bond_amount  # 本月入池后的总额
+        lines.append(f"本月固收应配： {_fmt_amount(bond_amount)}")
+        interest_str = f"（含逆回购收益 {_fmt_amount(total_interest)}）" if total_interest > 0 else ""
+        lines.append(f"累积池存量：   {_fmt_amount(balance)}{interest_str}")
+        lines.append(f"累积池总额：   {_fmt_amount(pool_total)}")
+
+        if can_buy:
+            buy_amount = lots * min_purchase
+            remaining = pool_total - buy_amount
+            lines.append(f"-> 本月操作：   [BUY] 买入 {lots} 手 511010（{_fmt_amount(buy_amount)}）")
+            if remaining > 0:
+                lines.append(f"买入后余留：   {_fmt_amount(remaining)}（自动滚入下月）")
+        else:
+            gap = min_purchase - pool_total
+            lines.append(f"距下一手门槛： {_fmt_amount(max(0, gap))}（需 {_fmt_amount(min_purchase)} 触发）")
+            lines.append("-> 本月操作：   [WAIT] 暂不买入，继续累积")
+        lines.append("")
 
     # ── 【权益分配】 ──
     lines.append("【权益分配】")

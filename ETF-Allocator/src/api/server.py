@@ -30,6 +30,9 @@ from src.risk.controller import all_effective_limits, reset_recovery_tracking
 from src.constraints.portfolio import apply_constraints
 from src.allocation.allocator import allocate
 
+# v1.3: bond accumulator
+from src.execution.bond_liquidity import BondAccumulator
+
 app = FastAPI(title="ETF-Allocator API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
@@ -118,7 +121,25 @@ def get_report(
 
     # total=0 时用初始建仓模式；>0 时传真实值
     alloc = allocate(scores, weights, limits, total, NEW_MONEY_DEFAULT * eq_ratio, cons["buy_coefficients"])
-    alloc["国债ETF"] = alloc.get("国债ETF", 0) + NEW_MONEY_DEFAULT * bond_ratio
+
+    # v1.3: bond accumulator
+    bond_budget = NEW_MONEY_DEFAULT * bond_ratio
+    bond_alloc_overflow = alloc.pop("国债ETF", 0)
+    total_bond_deposit = bond_budget + bond_alloc_overflow
+    accumulator_path = str(PROJECT_ROOT / "data" / "db" / "bond_accumulator.json")
+    bond_accumulator = BondAccumulator.load(accumulator_path)
+    bond_accumulator.deposit(total_bond_deposit)
+    bond_interest = bond_accumulator.accrue_interest()
+    bond_action = bond_accumulator.execute()
+    if bond_action.buy:
+        alloc["国债ETF"] = bond_action.amount
+    bond_status = bond_accumulator.get_status()
+    bond_status["deposit_this_month"] = total_bond_deposit
+    bond_status["interest_this_month"] = bond_interest
+    bond_status["action_buy"] = bond_action.buy
+    bond_status["action_lots"] = bond_action.lots
+    bond_status["action_amount"] = bond_action.amount
+    bond_accumulator.save(accumulator_path)
 
     conn.close()
 
@@ -236,6 +257,8 @@ def get_report(
             }
             for a in assets_out
         ],
+        # v1.3: 国债执行状态
+        "bond_status": bond_status,
     }
 
 
@@ -272,7 +295,22 @@ def post_report(params: ReportParams):
     cons = apply_constraints(weights, limits, total)
 
     alloc = allocate(scores, weights, limits, total, params.new_money * eq_ratio, cons["buy_coefficients"])
-    alloc["国债ETF"] = alloc.get("国债ETF", 0) + params.new_money * bond_ratio
+
+    # v1.3: bond accumulator
+    bond_budget_post = params.new_money * bond_ratio
+    bond_alloc_overflow_post = alloc.pop("国债ETF", 0)
+    total_bond_deposit_post = bond_budget_post + bond_alloc_overflow_post
+    accumulator_path_post = str(PROJECT_ROOT / "data" / "db" / "bond_accumulator.json")
+    bond_acc_post = BondAccumulator.load(accumulator_path_post)
+    bond_acc_post.deposit(total_bond_deposit_post)
+    bond_acc_post.accrue_interest()
+    bond_action_post = bond_acc_post.execute()
+    if bond_action_post.buy:
+        alloc["国债ETF"] = bond_action_post.amount
+    bond_status_post = bond_acc_post.get_status()
+    bond_status_post["action_buy"] = bond_action_post.buy
+    bond_status_post["action_lots"] = bond_action_post.lots
+    bond_status_post["action_amount"] = bond_action_post.amount
 
     # 投后仓位计算
     post_weights = {}
@@ -334,11 +372,11 @@ def post_report(params: ReportParams):
             }
             for a in assets_out
         ],
+        "bond_status": bond_status_post,
     }
 
 
-# ── GET /api/history ──
-@app.get("/api/history")
+# ── GET /api/history ──@app.get("/api/history")
 def get_history(
     index: str = Query("000300"),
     field: str = Query("pe"),

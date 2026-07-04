@@ -22,6 +22,7 @@ from config.settings import (
     ASSETS, TRAIN_START, TRAIN_END, TEST_START, TEST_END,
     WINDOW_PE_PERCENTILE_YEARS, WINDOW_MOMENTUM_DAYS,
     EXCLUDE_INDEX_BACKFILL, KECHUANG_TREND_OFF_MULTIPLIER,
+    BOND_MIN_PURCHASE, BOND_CASH_YIELD,
 )
 
 # ---- point-in-time data ----
@@ -39,6 +40,9 @@ from src.regime.thermometer import equity_ratio, reset_persistence
 from src.risk.controller import all_effective_limits, reset_recovery_tracking
 from src.constraints.portfolio import apply_constraints
 from src.allocation.allocator import allocate
+
+# ---- bond accumulator (v1.3) ----
+from src.execution.bond_liquidity import BondAccumulator
 
 __all__ = ["run_backtest", "compute_metrics"]
 
@@ -329,6 +333,10 @@ def run_backtest(
     monthly_returns: List[float]    = []
     post_invest_values: List[float] = []   # value *after* investing
 
+    # ── bond accumulator (v1.3): 虚拟累积池，解决国债ETF最低买入门槛 ──
+    bond_accumulator = BondAccumulator(min_purchase=BOND_MIN_PURCHASE)
+    bond_cash_balance = 0.0  # 累积池中未买入的资金（计入总资产但不计入固收持仓）
+
     for i, d in enumerate(decision_dates):
         # ----- current market value -----
         prices: Dict[str, float]  = {}
@@ -340,7 +348,7 @@ def run_backtest(
             prices[name] = p
             values[name] = shares[name] * p
 
-        total_assets = sum(values.values())
+        total_assets = sum(values.values()) + bond_cash_balance
 
         # ----- portfolio snapshots -----
         if i > 0:
@@ -392,8 +400,21 @@ def run_backtest(
             total_assets=max(total_assets, 1.0),
             equity_budget=equity_budget,
         )
-        if bond_budget > 0:
-            alloc["国债ETF"] = alloc.get("国债ETF", 0) + bond_budget
+
+        # ---- v1.3: bond accumulator ----
+        # 固收应配金额进累积池，逆回购计息，判断是否触发买入
+        bond_alloc_from_allocator = alloc.pop("国债ETF", 0)  # 分配层溢出
+        total_bond_deposit = bond_budget + bond_alloc_from_allocator
+        bond_accumulator.deposit(total_bond_deposit)
+        bond_interest = bond_accumulator.accrue_interest(BOND_CASH_YIELD)
+        bond_action = bond_accumulator.execute()
+
+        # 只有触发买入时才记录国债ETF持仓
+        if bond_action.buy:
+            alloc["国债ETF"] = bond_action.amount
+
+        # 累积池余额作为现金计入总资产（不计入固收持仓）
+        bond_cash_balance = bond_accumulator.get_status()["balance"]
 
         # ---- 7. execute (buy shares) ----
         for name, amount in alloc.items():
@@ -418,6 +439,9 @@ def run_backtest(
             "allocations":     alloc,
             "current_weights": current_weights,
             "scores":          {k: v for k, v in scores.items()},
+            "bond_status":     bond_accumulator.get_status(),
+            "bond_action":     {"buy": bond_action.buy, "lots": bond_action.lots,
+                                "amount": bond_action.amount, "interest": bond_interest},
         })
 
     # ── final portfolio value ──
