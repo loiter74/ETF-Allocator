@@ -104,7 +104,11 @@ python ETF-Allocator/scripts/import_pb_all.py        # PB 数据
    ```
    ⚠️ 子 agent 必须持续检查自己是否卡死（超过 60s 无进展 → 报告失败），主 agent 也应定期检查子 agent 状态。
 7. **QA 测试必须重新获取数据**：启动测试步骤时，必须使用 `qa` skill 并结合 `playwright` 技能进行页面捕获和验证。**严禁复用上一次 playwright 的缓存结果**，每次测试前必须重新获取最新测试数据。
-8. **唯一设计文档**：`ds.v1.2.winner.md` 是本项目的唯一设计文档（design spec），所有架构决策、因子公式、评分逻辑、约束规则以该文件为准。任何实现必须可追溯到该文档中的具体章节。
+8. **唯一设计文档**：`ds.v1.3.md` 是本项目的唯一设计文档（design spec），所有架构决策、因子公式、评分逻辑、约束规则以该文件为准。任何实现必须可追溯到该文档中的具体章节。
+
+## Design Workflow
+
+**Brainstorming → OpenSpec Propose**：所有设计讨论完成后，使用 `/opsx:propose` 创建 OpenSpec change（包含 proposal.md、design.md、specs/、tasks.md），不要写独立的 spec 文档到 `docs/superpowers/specs/`。OpenSpec artifacts 存放在 `openspec/changes/<name>/`，是唯一的设计-实现桥梁。
 
 ## Conventions
 
