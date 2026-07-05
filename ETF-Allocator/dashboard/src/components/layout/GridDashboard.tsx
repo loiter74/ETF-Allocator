@@ -1,7 +1,10 @@
 import { useMemo, type ReactNode } from 'react';
-import { Responsive, useContainerWidth } from 'react-grid-layout';
+import { Responsive as ResponsiveBase, useContainerWidth } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import GlassCard from '../GlassCard';
+
+// react-grid-layout 类型定义不完整，运行时支持 isDraggable/isResizable 等属性
+const Responsive = ResponsiveBase as any;
 
 interface WidgetDef {
   id: string;
@@ -41,9 +44,9 @@ export function GridDashboard({ widgets }: Props) {
         cols={COLS}
         rowHeight={ROW_H}
         width={width}
-        margin={[16, 16]}
-        containerPadding={[0, 0]}
-        onLayoutChange={(_c, all) => saveLayout(all as Record<string, any[]>)}
+        margin={[16, 16] as [number, number]}
+        containerPadding={[0, 0] as [number, number]}
+        onLayoutChange={(_c: any, all: any) => saveLayout(all as Record<string, any[]>)}
         isDraggable
         isResizable
       >

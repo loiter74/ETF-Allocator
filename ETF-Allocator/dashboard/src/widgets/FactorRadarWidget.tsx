@@ -33,7 +33,7 @@ export function FactorRadarWidget({ scores }: Props) {
           <PolarGrid stroke="#E5E7EB" />
           <PolarAngleAxis
             dataKey="name"
-            tick={({ payload, x, y, ...rest }: any) => {
+            tick={({ payload, x, y }: any) => {
               const d = data.find(d => d.name === payload.value);
               const color = d?.hasData ? '#374151' : '#D1D5DB';
               const showScore = d?.hasData && d.rawScore != null;

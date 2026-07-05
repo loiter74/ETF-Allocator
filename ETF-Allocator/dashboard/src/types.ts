@@ -33,6 +33,20 @@ export interface AllocationSummary {
   factor_group: string;
 }
 
+/** 国债累积池状态（BondAccumulator 输出） */
+export interface BondStatus {
+  balance: number;             // 累积池当前余额
+  min_purchase: number;        // 最低买入门槛 (14,000)
+  total_interest: number;      // 累计逆回购利息
+  can_buy: boolean;            // 本月是否可触发购买
+  lots_available: number;      // 可买手数
+  deposit_this_month: number;  // 本月存入金额
+  interest_this_month: number; // 本月利息
+  action_buy: boolean;         // 本月实际是否执行了购买
+  action_lots: number;         // 本月购买手数
+  action_amount: number;       // 本月购买金额
+}
+
 export interface MonthlyReport {
   date: string;
   new_money?: number;
@@ -42,6 +56,7 @@ export interface MonthlyReport {
   allocations: AllocationItem[];
   allocation_summary?: AllocationSummary[];
   warnings?: string[];
+  bond_status?: BondStatus;
 }
 
 export interface SimulateRequest {
@@ -60,7 +75,8 @@ export interface SimulateResponse {
 
 export interface HistoryPoint {
   date: string;
-  value: number;
+  value?: number;
+  percentile?: number;
 }
 
 export interface HistoryResponse {

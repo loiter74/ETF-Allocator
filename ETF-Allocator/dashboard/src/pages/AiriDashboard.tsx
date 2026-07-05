@@ -13,7 +13,7 @@ import GlassCard from '../components/GlassCard';
 import { ExportPanel } from '../components/ExportPanel';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ETF_TRACKING_INDEX } from '../types';
-import type { MonthlyReport, AllocationItem } from '../types';
+import type { MonthlyReport } from '../types';
 
 const DEFAULT_HOLDINGS = [
   { name: '白酒ETF', code: '161725', amount: 0 },
@@ -37,8 +37,8 @@ function useValuationHistory(asset: string, years: number) {
         ]);
         if (cancelled) return;
         const peJson = await peRes.json(); const pbJson = await pbRes.json();
-        const peMap = new Map((peJson.data ?? []).map((d: any) => [d.date, d.percentile]));
-        const pbMap = new Map((pbJson.data ?? []).map((d: any) => [d.date, d.percentile]));
+        const peMap = new Map<string, number | null>((peJson.data ?? []).map((d: any) => [d.date, d.percentile ?? null]));
+        const pbMap = new Map<string, number | null>((pbJson.data ?? []).map((d: any) => [d.date, d.percentile ?? null]));
         const allDates = [...new Set([...peMap.keys(), ...pbMap.keys()])].sort();
         setHistory(allDates.map(d => ({ date: d, pePercentile: peMap.get(d) ?? null, pbPercentile: pbMap.get(d) ?? null })));
       } catch { if (!cancelled) setHistory([]); }
@@ -91,8 +91,22 @@ export default function AiriDashboard() {
   const { data: simData, loading: simLoading, simulate } = useSimulate();
   const [selectedAsset, setSelectedAsset] = useState<string>('沪深300ETF');
   const [years, setYears] = useState(5);
-  const [holdings, setHoldings] = useState(DEFAULT_HOLDINGS);
-  const [newMoney, setNewMoney] = useState(8000);
+
+  // 持仓持久化：从 localStorage 恢复
+  const [holdings, setHoldings] = useState<typeof DEFAULT_HOLDINGS>(() => {
+    try {
+      const saved = localStorage.getItem('etf-allocator-holdings');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return DEFAULT_HOLDINGS;
+  });
+  const [newMoney, setNewMoney] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('etf-allocator-new-money');
+      if (saved) return parseInt(saved, 10) || 8000;
+    } catch {}
+    return 8000;
+  });
   const valuationHistory = useValuationHistory(selectedAsset, years);
 
   const totalAssets = holdings.reduce((s, h) => s + h.amount, 0);
@@ -128,6 +142,11 @@ export default function AiriDashboard() {
     const today = new Date();
     const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     simulate({ date: dateStr, new_money: newMoney, total_assets: totalAssets, current_weights: weights });
+    // 持久化到 localStorage
+    try {
+      localStorage.setItem('etf-allocator-holdings', JSON.stringify(holdings));
+      localStorage.setItem('etf-allocator-new-money', String(newMoney));
+    } catch {}
   };
 
   // 从 report 提取 scores 和 allocations 数据
@@ -218,6 +237,23 @@ export default function AiriDashboard() {
       if (reason && reason.length < 30) lines.push(`           ${reason}`);
     }
     lines.push('');
+
+    // 国债累积池状态
+    const bs = report.bond_status;
+    if (bs) {
+      if (bs.action_buy) {
+        lines.push(`🏛️ 国债  本月买入 ¥${Math.round(bs.action_amount).toLocaleString()}（${bs.action_lots}手）`);
+        lines.push(`   池余额 ¥${Math.round(bs.balance).toLocaleString()} · 累计利息 ¥${bs.total_interest.toFixed(1)}`);
+      } else {
+        const pct = Math.round(bs.balance / bs.min_purchase * 100);
+        const remaining = bs.min_purchase - bs.balance;
+        const mLeft = bs.deposit_this_month > 0 ? Math.ceil(remaining / bs.deposit_this_month) : null;
+        lines.push(`🏛️ 国债  累积中 ¥${Math.round(bs.balance).toLocaleString()} / ¥${Math.round(bs.min_purchase).toLocaleString()}（${pct}%）`);
+        lines.push(`   本月存入 ¥${Math.round(bs.deposit_this_month).toLocaleString()} · 利息 ¥${bs.total_interest.toFixed(1)}`);
+        if (mLeft != null) lines.push(`   预计 ${mLeft} 个月后可购买`);
+      }
+      lines.push('');
+    }
 
     // 约束
     const vgWt2 = risk?.value_group_weight ?? 0; const vgCap2 = risk?.value_group_cap ?? 0.6;
@@ -326,7 +362,7 @@ export default function AiriDashboard() {
 📊 沪深300 1 − PE分位  
 🔬 科创50  动量分位 × 趋势乘数
 🏛 国债    不参与评分（吸收口）">
-                <AllocationCardsWidget allocations={allocs} onSelect={setSelectedAsset} selectedAsset={selectedAsset} />
+                <AllocationCardsWidget allocations={allocs} onSelect={setSelectedAsset} selectedAsset={selectedAsset} bondStatus={dash.bondStatus} />
               </GlassCard>
 
               {/* Row 3: 因子雷达 | 估值分位 */}

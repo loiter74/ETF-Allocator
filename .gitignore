@@ -15,6 +15,7 @@ venv/
 *.db
 *.db-journal
 *.db-wal
+ETF-Allocator/data/db/
 
 # IDE
 .idea/

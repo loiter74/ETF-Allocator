@@ -376,7 +376,8 @@ def post_report(params: ReportParams):
     }
 
 
-# ── GET /api/history ──@app.get("/api/history")
+# ── GET /api/history ──
+@app.get("/api/history")
 def get_history(
     index: str = Query("000300"),
     field: str = Query("pe"),

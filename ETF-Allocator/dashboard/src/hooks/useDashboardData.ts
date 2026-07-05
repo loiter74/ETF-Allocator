@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { MonthlyReport, HistoryResponse } from '../types';
+import type { MonthlyReport, HistoryResponse, BondStatus } from '../types';
 
 const BASE = '/api';
 const POLL_MS = 10000;
@@ -18,7 +18,7 @@ export interface DashboardData {
     label: string;
   };
   allocationData: {
-    allocations: Record<string, { amount: number; triggerReason: string; opportunityScore: number | null }>;
+    allocations: Record<string, { amount: number; triggerReason: string; opportunityScore: number | null; code?: string }>;
   };
   equityRingData: {
     equityRatio: number;
@@ -31,6 +31,7 @@ export interface DashboardData {
     growthCap: number;
   };
   scores: Record<string, number | null>;
+  bondStatus: BondStatus | null;
   activityLog: { date: string; summary: string }[];
   valuationHistory: { date: string; pePercentile: number | null; pbPercentile: number | null }[];
 }
@@ -43,6 +44,7 @@ function emptyDashboardData(): DashboardData {
     equityRingData: { equityRatio: 0, bondRatio: 0 },
     riskData: { valueWeight: 0, valueCap: 0.6, growthWeight: 0, growthCap: 0.15 },
     scores: {},
+    bondStatus: null,
     activityLog: [],
     valuationHistory: [],
   };
@@ -51,7 +53,7 @@ function emptyDashboardData(): DashboardData {
 function transformReport(r: MonthlyReport): Partial<DashboardData> {
   const temp = r.market_temp;
   const risk = r.portfolio_risk;
-  const allocs: Record<string, { amount: number; triggerReason: string; opportunityScore: number | null }> = {};
+  const allocs: Record<string, { amount: number; triggerReason: string; opportunityScore: number | null; code?: string }> = {};
   const scores: Record<string, number | null> = {};
 
   for (const a of r.allocations) {
@@ -81,6 +83,7 @@ function transformReport(r: MonthlyReport): Partial<DashboardData> {
       growthCap: risk.growth_group_cap,
     },
     scores,
+    bondStatus: r.bond_status ?? null,
   };
 }
 
@@ -111,7 +114,7 @@ export function useDashboardData(): DashboardData {
         if (json.allocations.length > 0) {
           const mkt = json.market_temp;
           const equityPct = Math.round(mkt.equity_ratio * 100);
-          const targetEquity = json.new_money * mkt.equity_ratio;
+          const targetEquity = (json.new_money ?? 0) * mkt.equity_ratio;
           const actualEquity = json.allocations
             .filter((a: any) => a.asset !== '国债ETF')
             .reduce((s: number, a: any) => s + a.amount, 0);
