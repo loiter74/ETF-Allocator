@@ -68,9 +68,13 @@ export interface SimulateRequest {
 
 export interface SimulateResponse {
   date: string;
+  new_money: number;
+  total_assets: number;
+  new_total: number;
   allocations: AllocationItem[];
   before_weights: Record<string, number>;
   after_weights: Record<string, number>;
+  bond_status?: BondStatus;
 }
 
 export interface HistoryPoint {
@@ -89,6 +93,33 @@ export interface FetchState<T> {
   data: T | null;
   loading: boolean;
   error: string | null;
+}
+
+export interface InvestmentRecord {
+  id: number;
+  investment_date: string;
+  amount: number;
+  allocations: Record<string, number>;
+  note: string;
+  created_at: string;
+}
+
+export interface InvestmentSummary {
+  count: number;
+  total_amount: number;
+  last_date: string | null;
+  last_amount: number | null;
+}
+
+export interface InvestmentResponse {
+  records: InvestmentRecord[];
+  summary: InvestmentSummary;
+}
+
+export interface InvestmentCreateRequest {
+  investment_date: string;
+  allocations: Record<string, number>;
+  note: string;
 }
 
 export const INDEX_MAP: Record<string, { name: string; code: string }> = {

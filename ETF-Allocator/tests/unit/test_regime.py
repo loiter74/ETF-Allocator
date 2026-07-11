@@ -79,11 +79,11 @@ class TestEquityRatio:
         assert bond == 0.00
 
     def test_disagreement_first_call_default_full(self):
-        """首调用不一致 → 默认 70%（配置值）"""
+        """首调用不一致 → 默认 100%。"""
         reset_persistence()
         r, bond = equity_ratio(0.95, 0.50)
-        assert r == 0.70
-        assert bond == pytest.approx(0.30)
+        assert r == 1.00
+        assert bond == pytest.approx(0.00)
 
     def test_freeze_then_reagree(self):
         """冻结后双指标重新一致 → 用新档位"""
@@ -103,10 +103,10 @@ class TestEquityRatio:
         assert r == 1.00
 
     def test_none_first_call_default(self):
-        """首调用 None → 默认 70%（配置值）"""
+        """首调用 None → 默认 100%。"""
         reset_persistence()
         r, bond = equity_ratio(None, 0.95)
-        assert r == 0.70
+        assert r == 1.00
 
     # ── 类型 ──
 
@@ -123,14 +123,14 @@ class TestResetPersistence:
     def test_reset_clears_state(self):
         equity_ratio(0.30, 0.40)  # 100%
         reset_persistence()
-        # 重置后首调用，不一致 → 默认 70%
+        # 重置后首调用，不一致 → 默认 100%
         r, _ = equity_ratio(0.95, 0.50)
-        assert r == 0.70
+        assert r == 1.00
 
     def test_reset_then_new_call_is_first(self):
         reset_persistence()
         equity_ratio(0.85, 0.88)  # 40%
         reset_persistence()
-        # 重置后不一致 → 默认 70%
+        # 重置后不一致 → 默认 100%
         r, _ = equity_ratio(0.95, 0.50)
-        assert r == 0.70
+        assert r == 1.00

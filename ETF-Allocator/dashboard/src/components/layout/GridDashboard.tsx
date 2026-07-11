@@ -1,10 +1,7 @@
 import { useMemo, type ReactNode } from 'react';
-import { Responsive as ResponsiveBase, useContainerWidth } from 'react-grid-layout';
+import { Responsive, useContainerWidth, type ResponsiveLayouts } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import GlassCard from '../GlassCard';
-
-// react-grid-layout 类型定义不完整，运行时支持 isDraggable/isResizable 等属性
-const Responsive = ResponsiveBase as any;
 
 interface WidgetDef {
   id: string;
@@ -20,25 +17,35 @@ const BREAKPOINTS = { lg: 1200, md: 996, sm: 768 };
 const COLS = { lg: 12, md: 8, sm: 4 };
 const ROW_H = 80;
 const STORAGE_KEY = 'etf-dashboard-layout';
+type BreakpointName = keyof typeof BREAKPOINTS;
 
-function loadLayout(): Record<string, any[]> {
-  try { const raw = localStorage.getItem(STORAGE_KEY); if (raw) return JSON.parse(raw); } catch {}
+function loadLayout(): ResponsiveLayouts<BreakpointName> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw) as ResponsiveLayouts<BreakpointName>;
+  } catch {
+    return {};
+  }
   return {};
 }
 
-function saveLayout(layouts: Record<string, any[]>) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(layouts)); } catch {}
+function saveLayout(layouts: ResponsiveLayouts<BreakpointName>) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(layouts));
+  } catch {
+    // Dragging remains functional when layout persistence is unavailable.
+  }
 }
 
 export function GridDashboard({ widgets }: Props) {
   const { width, containerRef } = useContainerWidth();
   const savedLayouts = useMemo(() => loadLayout(), []);
 
-  if (!width) return <div ref={containerRef as any} className="min-h-64" />;
+  if (!width) return <div ref={containerRef} className="min-h-64" />;
 
   return (
-    <div ref={containerRef as any}>
-      <Responsive
+    <div ref={containerRef}>
+      <Responsive<BreakpointName>
         layouts={savedLayouts}
         breakpoints={BREAKPOINTS}
         cols={COLS}
@@ -46,9 +53,9 @@ export function GridDashboard({ widgets }: Props) {
         width={width}
         margin={[16, 16] as [number, number]}
         containerPadding={[0, 0] as [number, number]}
-        onLayoutChange={(_c: any, all: any) => saveLayout(all as Record<string, any[]>)}
-        isDraggable
-        isResizable
+        onLayoutChange={(_current, all) => saveLayout(all)}
+        dragConfig={{ enabled: true, handle: '.drag-handle' }}
+        resizeConfig={{ enabled: true }}
       >
         {widgets.map(w => (
           <div key={w.id} data-grid={w.layout}>

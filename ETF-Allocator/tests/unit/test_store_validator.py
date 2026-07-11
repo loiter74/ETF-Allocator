@@ -28,18 +28,23 @@ def conn():
 
 
 class TestValidatePublishDate:
-    """publish_date 不能晚于 trade_date"""
+    """publish_date 不能早于其所描述的 trade_date。"""
 
     def test_publish_same_as_trade_ok(self):
         assert validate_publish_date_not_future("2024-01-15", "2024-01-15") is True
 
-    def test_publish_before_trade_ok(self):
-        """数据发布日早于交易日？不应出现但允许通过（可能是估算的发布日）"""
-        assert validate_publish_date_not_future("2024-01-10", "2024-01-15") is True
+    def test_publish_before_trade_fails(self):
+        assert validate_publish_date_not_future("2024-01-10", "2024-01-15") is False
 
-    def test_publish_after_trade_fails(self):
-        """发布日在交易日之后 → 拒绝（未来信息）"""
-        assert validate_publish_date_not_future("2024-01-20", "2024-01-15") is False
+    def test_publish_after_trade_ok(self):
+        assert validate_publish_date_not_future("2024-01-20", "2024-01-15") is True
+
+    def test_mixed_integer_dates_do_not_leak_future_rows(self, conn):
+        conn.execute(
+            "INSERT INTO index_valuation VALUES (?,?,?,?,?,?)",
+            ("000300", 20270101, 12.0, 1.2, 0.03, 20270102),
+        )
+        assert get_available_valuations(conn, date(2024, 1, 1), "000300") == []
 
     def test_publish_date_none_fails(self):
         """缺少 publish_date → 不安全，拒绝"""

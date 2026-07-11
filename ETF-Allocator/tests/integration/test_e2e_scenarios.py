@@ -44,8 +44,8 @@ def test_cool_market_fills_gaps():
     }
     limits = {k: 0.30 for k in scores}
     # 白酒低于下限 (12%), 科创正好在下限 (10%)
-    weights = {"白酒ETF": 0.05, "银行ETF": 0.20, "红利ETF": 0.20,
-               "沪深300ETF": 0.20, "科创50ETF": 0.10, "国债ETF": 0.25}
+    weights = {"白酒ETF": 0.05, "银行ETF": 0.15, "红利ETF": 0.15,
+               "沪深300ETF": 0.15, "科创50ETF": 0.10, "国债ETF": 0.40}
 
     result = allocate(scores, weights, limits, total_assets=200_000, equity_budget=10_000)
 

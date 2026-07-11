@@ -35,9 +35,11 @@ from config.settings import (
 )
 from src.store.schema import create_tables
 from src.backtest.engine import run_backtest
+from src.backtest.parameter_lock import verify_snapshot, write_snapshot
 
 
 DB_PATH = PROJECT_ROOT / "data" / "db" / "etf_data.db"
+PARAMETER_LOCK_PATH = PROJECT_ROOT / "data" / "db" / "locked_parameters.json"
 
 
 def get_db_connection() -> sqlite3.Connection:
@@ -266,7 +268,7 @@ def print_train_results(results: dict) -> None:
     print("    - ALLOCATION_GAP_WEIGHT / OPPORTUNITY_WEIGHT: 分配权重")
     print("    - WINDOW_PE_PERCENTILE_YEARS: 分位窗口年数")
     print()
-    print("  ⚠ 调参完成后，锁死参数，用 'python validate.py test' 验证。")
+    print("  [WARN] 调参完成后，锁死参数，用 'python validate.py test' 验证。")
     print("  严禁在测试期回头调参。")
     print("=" * 60)
 
@@ -294,11 +296,11 @@ def print_test_results(results: dict) -> None:
     if c is None:
         print("    ? 数据不足，无法计算 Calmar")
     elif c > 1.0:
-        print("    ✓ Calmar > 1.0 — 收益覆盖回撤，策略有效")
+        print("    [OK] Calmar > 1.0: 收益覆盖回撤，策略有效")
     elif c > 0.5:
-        print("    ○ Calmar 0.5~1.0 — 策略有一定效果，可继续优化")
+        print("    [INFO] Calmar 0.5~1.0: 策略有一定效果，可继续优化")
     else:
-        print("    ✗ Calmar < 0.5 — 回撤过大或收益不足，需反思参数")
+        print("    [FAIL] Calmar < 0.5: 回撤过大或收益不足，需反思参数")
     print("=" * 60)
 
 
@@ -326,6 +328,9 @@ def run_train() -> None:
         sys.exit(1)
 
     print_train_results(results)
+    snapshot = write_snapshot(PARAMETER_LOCK_PATH)
+    print(f"[LOCK] 参数快照: {PARAMETER_LOCK_PATH}")
+    print(f"[LOCK] SHA-256: {snapshot['parameter_hash']}")
 
 
 def run_test() -> None:
@@ -334,6 +339,12 @@ def run_test() -> None:
     print(f"[INFO] 期间: {TEST_START} ~ {TEST_END}")
     print("[WARN] 参数已在训练期锁死，测试期只验不调！")
     print()
+
+    valid, detail = verify_snapshot(PARAMETER_LOCK_PATH)
+    if not valid:
+        print(f"[ERROR] {detail}")
+        sys.exit(1)
+    print(f"[LOCK] 参数校验通过: {detail}")
 
     conn = get_db_connection()
 

@@ -1,16 +1,24 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom';
 import AiriDashboard from './pages/AiriDashboard';
-import Simulator from './pages/Simulator';
 import Trends from './pages/Trends';
+import InvestmentHistory from './pages/InvestmentHistory';
+import NavBar from './components/NavBar';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<AiriDashboard />} />
-        <Route path="/simulator" element={<Simulator />} />
-        <Route path="/trends" element={<Trends />} />
-      </Routes>
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <div className="min-h-screen font-sans bg-[#FFFBF0]">
+          <NavBar />
+          <Routes>
+            <Route path="/" element={<AiriDashboard />} />
+            <Route path="/simulator" element={<Navigate to="/" replace />} />
+            <Route path="/trends" element={<Trends />} />
+            <Route path="/investments" element={<InvestmentHistory />} />
+          </Routes>
+        </div>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }

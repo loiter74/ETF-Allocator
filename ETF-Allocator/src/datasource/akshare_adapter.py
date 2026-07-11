@@ -8,8 +8,21 @@ datasource/akshare_adapter.py — AkShare 数据获取适配器。
 
 所有接口返回 pandas DataFrame，调用方自行入库。
 """
+from datetime import timedelta
 from typing import Optional, Dict, Any
 import pandas as pd
+
+from src.store.normalization import normalize_dividend_yield
+
+
+KNOWN_INDEX_INFO = {
+    "000300": {"name": "沪深300", "base_date": "2004-12-31", "publish_date": "2005-04-08"},
+    "000688": {"name": "科创50", "base_date": "2019-12-31", "publish_date": "2020-07-23"},
+    "000922": {"name": "中证红利", "base_date": "2004-12-31", "publish_date": "2005-01-04"},
+    "000985": {"name": "中证全指", "base_date": "2004-12-31", "publish_date": "2005-08-31"},
+    "399986": {"name": "中证银行", "base_date": "2004-12-31", "publish_date": "2013-07-15"},
+    "399997": {"name": "中证白酒", "base_date": "2008-12-31", "publish_date": "2015-01-21"},
+}
 
 
 def fetch_index_valuation(index_code: str) -> pd.DataFrame:
@@ -30,11 +43,13 @@ def fetch_index_valuation(index_code: str) -> pd.DataFrame:
     try:
         import akshare as ak
 
-        # 中证指数估值（覆盖大部分需要的指数）
-        df = ak.index_value_hist_funddb(
-            symbol=index_code,
-            indicator="市盈率",
-        )
+        # Prefer the historical FundDB endpoint when available. Newer AkShare
+        # releases expose the official CSIndex endpoint instead.
+        funddb = getattr(ak, "index_value_hist_funddb", None)
+        if funddb is not None:
+            df = funddb(symbol=index_code, indicator="市盈率")
+        else:
+            df = ak.stock_zh_index_value_csindex(symbol=index_code)
 
         if df is None or len(df) == 0:
             return pd.DataFrame()
@@ -43,11 +58,15 @@ def fetch_index_valuation(index_code: str) -> pd.DataFrame:
         df = df.rename(columns={
             "日期": "trade_date",
             "市盈率": "pe",
+            "市盈率1": "pe",
+            "股息率1": "dividend_yield",
         })
 
         # 尝试补充 PB 和股息率
         try:
-            df_pb = ak.index_value_hist_funddb(
+            if funddb is None:
+                raise LookupError("FundDB PB endpoint unavailable")
+            df_pb = funddb(
                 symbol=index_code,
                 indicator="市净率",
             )
@@ -58,7 +77,11 @@ def fetch_index_valuation(index_code: str) -> pd.DataFrame:
             df["pb"] = None
 
         try:
-            df_dy = ak.index_value_hist_funddb(
+            if "dividend_yield" in df.columns:
+                raise LookupError("dividend yield already provided by CSIndex")
+            if funddb is None:
+                raise LookupError("FundDB dividend endpoint unavailable")
+            df_dy = funddb(
                 symbol=index_code,
                 indicator="股息率",
             )
@@ -71,13 +94,19 @@ def fetch_index_valuation(index_code: str) -> pd.DataFrame:
                     on="trade_date",
                     how="left",
                 )
+        except LookupError:
+            if "dividend_yield" not in df.columns:
+                df["dividend_yield"] = None
         except Exception:
             df["dividend_yield"] = None
 
-        # 添加 publish_date：保守设为 trade_date（估值数据在对应交易日可获取）
-        # 对 point-in-time 回测而言，这意味着 T 日的估值在 T 日即可用，
-        # 这是合理的——中证指数通常在盘后或次日晨发布前一日估值。
-        df["publish_date"] = df["trade_date"]
+        # FundDB does not expose row-level publication timestamps. Treat the
+        # valuation as visible on the following calendar day, never on T close.
+        trade_dates = pd.to_datetime(df["trade_date"])
+        df["trade_date"] = trade_dates.dt.date.astype(str)
+        df["publish_date"] = (trade_dates + timedelta(days=1)).dt.date.astype(str)
+        if "dividend_yield" in df.columns:
+            df["dividend_yield"] = df["dividend_yield"].map(normalize_dividend_yield)
 
         return df
 
@@ -115,7 +144,7 @@ def fetch_etf_price(etf_code: str) -> pd.DataFrame:
             period="daily",
             start_date="20000101",
             end_date="20991231",
-            adjust="qfq",
+            adjust="hfq",
         )
 
         if df is None or len(df) == 0:
@@ -164,26 +193,7 @@ def fetch_index_info(index_code: str) -> Optional[Dict[str, Any]]:
     返回:
         dict 包含 base_date 和 publish_date，或 None
     """
-    try:
-        import akshare as ak
-
-        # 尝试获取指数基本信息
-        df = ak.index_info_global()
-        if df is None or len(df) == 0:
-            return None
-
-        # 按指数名称模糊匹配
-        # 由于 AkShare 接口变化频繁，这里提供一个通用框架
-        # 具体实现需要在运行时确认接口返回值结构
-        return {
-            "index_code": index_code,
-            "base_date": None,
-            "publish_date": None,
-            "_note": "index_info 的 base_date/publish_date 需手动确认中证指数官网",
-        }
-
-    except ImportError:
+    known = KNOWN_INDEX_INFO.get(index_code)
+    if known is None:
         return None
-    except Exception as e:
-        print(f"[WARN] fetch_index_info({index_code}) failed: {e}")
-        return None
+    return {"index_code": index_code, **known, "source": "project-verified-metadata"}

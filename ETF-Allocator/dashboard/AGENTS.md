@@ -23,7 +23,6 @@ dashboard/
     ├── types.ts            # 前端类型定义
     ├── pages/
     │   ├── AiriDashboard.tsx  # 主面板（拖拽布局 + 8 个 Widget）
-    │   ├── Simulator.tsx      # 参数模拟器
     │   ├── Trends.tsx         # 历史趋势
     │   └── _archive/          # 已废弃的旧页面
     ├── widgets/

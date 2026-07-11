@@ -27,7 +27,7 @@ function BondProgressCard({ status }: { status: BondStatus }) {
   const progress = Math.min(status.balance / status.min_purchase, 1);
   const progressPct = Math.round(progress * 100);
   // 预计还需几个月（按本月存入金额估算）
-  const remaining = status.min_purchase - status.balance;
+  const remaining = Math.max(0, status.min_purchase - status.balance);
   const monthsLeft = status.deposit_this_month > 0
     ? Math.ceil(remaining / status.deposit_this_month)
     : null;
@@ -113,8 +113,23 @@ export function AllocationCardsWidget({ allocations, onSelect, selectedAsset, bo
                 余额 ¥{Math.round(bondStatus.balance).toLocaleString()}
               </span>
             </motion.div>
+          ) : bondStatus ? (
+            <BondProgressCard key={name} status={bondStatus} />
           ) : (
-            <BondProgressCard key={name} status={bondStatus!} />
+            <motion.div
+              key={name}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.06, duration: 0.3 }}
+              className="rounded-xl p-3 flex flex-col items-center gap-2 text-center border bg-amber-50 border-amber-200 shadow-sm"
+            >
+              <span className="text-xs font-bold text-amber-700">国债</span>
+              <span className="text-[10px] text-[#9CA3AF]">({item.code ?? '511010'})</span>
+              <span className="text-lg font-bold tabular-nums text-[#1F2937]">
+                ¥{item.amount.toLocaleString('zh-CN')}
+              </span>
+              <span className="text-[10px] text-[#6B7280] leading-tight">{item.triggerReason}</span>
+            </motion.div>
           )
         ) : (
           <motion.div

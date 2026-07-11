@@ -38,6 +38,8 @@ class TestCreateTables:
         assert "index_info" in table_names
         assert "index_valuation" in table_names
         assert "etf_price" in table_names
+        assert "investment_record" in table_names
+        assert "investment_record_item" in table_names
 
     def test_create_tables_idempotent(self, conn):
         """连续两次 CREATE TABLE 不应报错（使用 IF NOT EXISTS）"""
@@ -72,6 +74,35 @@ class TestCreateTables:
         create_tables(conn)
         cols = {r["name"] for r in conn.execute("PRAGMA table_info(etf_price)")}
         assert "close_adj" in cols
+
+    def test_investment_record_stores_integer_cents(self, conn):
+        create_tables(conn)
+        cols = {r["name"]: r for r in conn.execute("PRAGMA table_info(investment_record)")}
+        assert cols["amount_cents"]["type"] == "INTEGER"
+        assert cols["investment_date"]["notnull"] == 1
+
+    def test_investment_record_has_date_index(self, conn):
+        create_tables(conn)
+        indexes = {r["name"] for r in conn.execute("PRAGMA index_list(investment_record)")}
+        assert "idx_investment_record_date" in indexes
+
+    def test_investment_record_items_store_asset_amounts_in_integer_cents(self, conn):
+        create_tables(conn)
+        cols = {
+            r["name"]: r
+            for r in conn.execute("PRAGMA table_info(investment_record_item)")
+        }
+        assert cols["record_id"]["notnull"] == 1
+        assert cols["asset"]["notnull"] == 1
+        assert cols["amount_cents"]["type"] == "INTEGER"
+
+        foreign_keys = conn.execute(
+            "PRAGMA foreign_key_list(investment_record_item)"
+        ).fetchall()
+        assert any(
+            row["table"] == "investment_record" and row["on_delete"] == "CASCADE"
+            for row in foreign_keys
+        )
 
 
 class TestInsertETFInfo:
@@ -129,7 +160,7 @@ class TestInsertIndexValuation:
 
     def test_publish_date_not_null(self, conn):
         create_tables(conn)
-        with pytest.raises(sqlite3.IntegrityError):
+        with pytest.raises(ValueError):
             insert_index_valuation(conn, "000300", "2024-01-15",
                                     pe=11.5, pb=1.3, dividend_yield=None,
                                     publish_date=None)

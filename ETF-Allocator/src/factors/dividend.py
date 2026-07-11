@@ -6,6 +6,7 @@ import pandas as pd
 from typing import Optional
 
 from src.factors.value import expanding_percentile, _expand_truncate
+from src.store.normalization import normalize_dividend_yield
 
 
 def dividend_yield_percentile(
@@ -18,11 +19,12 @@ def dividend_yield_percentile(
     Returns:
         分位 ∈ [0, 1]，数据不足返回 None
     """
-    truncated = _expand_truncate(dy_series, max_window_years)
+    normalized = dy_series.map(normalize_dividend_yield)
+    truncated = _expand_truncate(normalized, max_window_years)
     if len(truncated) == 0:
         return None
     # 过滤异常值：股息率 > 100% 显然为数据错误（正常范围 0-15%）
-    truncated = truncated[truncated < 1.0]
+    truncated = truncated[(truncated >= 0) & (truncated <= 1.0)]
     if len(truncated) == 0:
         return None
     current = truncated.iloc[-1]

@@ -15,7 +15,7 @@ WINDOW_VOL_DAYS = 60                   # 风险层波动率窗口
 WINDOW_MAX_DRAWDOWN_DAYS = 252         # 最大回撤窗口
 
 # ── 温度计默认参数 ──
-THERMOMETER_DEFAULT_EQUITY = 0.70       # 首次运行且双指标不一致时的默认权益比例
+THERMOMETER_DEFAULT_EQUITY = 1.00       # 首次运行且双指标不一致时默认全权益
 
 # =============================================================
 # 1. 资产池定义

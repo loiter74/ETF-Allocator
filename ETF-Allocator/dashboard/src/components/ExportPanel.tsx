@@ -1,6 +1,8 @@
 
+import type { MonthlyReport } from '../types';
+
 interface Props {
-  report: any;
+  report: MonthlyReport;
   onCopy: () => void;
   onShare: () => void;
 }
@@ -28,8 +30,8 @@ export function ExportPanel({ report, onCopy, onShare }: Props) {
   const newMoney = report.new_money ?? 0;
   const targetEquity = newMoney * t.equity_ratio;
   const actualEquity = report.allocations
-    .filter((a: any) => a.asset !== '国债ETF')
-    .reduce((s: number, a: any) => s + Math.round(a.amount), 0);
+    .filter(a => a.asset !== '国债ETF')
+    .reduce((sum, allocation) => sum + Math.round(allocation.amount), 0);
   const equityGap = targetEquity - actualEquity;
   const hasGap = equityGap > 10;
 
@@ -69,12 +71,12 @@ export function ExportPanel({ report, onCopy, onShare }: Props) {
       </div>
 
       {/* Thermometer Reason */}
-      {pePct != null && pbPct != null && (
+      {t.status === 'frozen' && pePct != null && pbPct != null && (
         <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-2 text-xs text-[#6B7280]">
           <span>⏸️</span>
-          <span>温度计冻结 · PE <span className="font-bold text-[#EF4444]">{pePct}%</span>（过热）
-            vs PB <span className="font-bold text-[#10B981]">{pbPct}%</span>（低估）
-            → 维持 {eqPct}% 权益，不行动</span>
+          <span>温度计冻结 · PE <span className="font-bold text-[#1F2937]">{pePct}%</span>
+            vs PB <span className="font-bold text-[#1F2937]">{pbPct}%</span>
+            ，信号档位不一致，维持 {eqPct}% 权益</span>
         </div>
       )}
 
@@ -100,7 +102,7 @@ export function ExportPanel({ report, onCopy, onShare }: Props) {
       <div className="bg-white rounded-xl border border-gray-100 p-3">
         <div className="text-xs font-medium text-[#6B7280] mb-2">分配前持仓占比</div>
         <div className="space-y-1.5">
-          {report.allocations.map((a: any) => {
+          {report.allocations.map(a => {
             const name = a.asset.replace('ETF', '');
             const wt = curWt[a.asset] ?? 0;
             const hasData = wt > 0;
@@ -135,7 +137,7 @@ export function ExportPanel({ report, onCopy, onShare }: Props) {
             </tr>
           </thead>
           <tbody>
-            {report.allocations.map((a: any, i: number) => {
+            {report.allocations.map((a, i) => {
               const name = a.asset.replace('ETF', '');
               const amt = Math.round(a.amount);
               const score = a.opportunity_score;
@@ -146,7 +148,7 @@ export function ExportPanel({ report, onCopy, onShare }: Props) {
                   <td className="py-2 text-[#9CA3AF]">{i + 1}</td>
                   <td className="py-2 font-medium text-[#1F2937]">
                     {name}
-                    <span className="text-[#9CA3AF] ml-1 text-[10px]">{(a as any).code}</span>
+                    <span className="text-[#9CA3AF] ml-1 text-[10px]">{a.code}</span>
                   </td>
                   <td className="py-2 text-center">
                     {sc != null ? (
@@ -170,12 +172,15 @@ export function ExportPanel({ report, onCopy, onShare }: Props) {
       </div>
 
       {/* Constraints */}
-      {(risk?.value_group_weight ?? 0) >= (risk?.value_group_cap ?? 0.6) * 0.90 && (
+      {((risk?.value_group_weight ?? 0) >= (risk?.value_group_cap ?? 0.6) * 0.90 ||
+        (risk?.growth_group_weight ?? 0) >= (risk?.growth_group_cap ?? 0.15) * 0.90) && (
         <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="bg-amber-50 rounded-xl p-3">
-            <span className="text-amber-700">⚠️ 价值组上限</span>
-            <span className="text-amber-600 nums ml-1">{Math.round((risk?.value_group_weight ?? 0) * 100)}% / {Math.round((risk?.value_group_cap ?? 0.6) * 100)}%</span>
-          </div>
+          {(risk?.value_group_weight ?? 0) >= (risk?.value_group_cap ?? 0.6) * 0.90 && (
+            <div className="bg-amber-50 rounded-xl p-3">
+              <span className="text-amber-700">⚠️ 价值组上限</span>
+              <span className="text-amber-600 nums ml-1">{Math.round((risk?.value_group_weight ?? 0) * 100)}% / {Math.round((risk?.value_group_cap ?? 0.6) * 100)}%</span>
+            </div>
+          )}
           {(risk?.growth_group_weight ?? 0) >= (risk?.growth_group_cap ?? 0.15) * 0.90 && (
             <div className="bg-amber-50 rounded-xl p-3">
               <span className="text-amber-700">⚠️ 成长组上限</span>

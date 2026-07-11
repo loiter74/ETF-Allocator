@@ -149,8 +149,9 @@ class TestBasicAllocation:
         }
         result = allocate(scores, weights, limits, total_assets=100_000, equity_budget=5_000)
 
-        # 白酒是唯一有空间的（低于上限）且机会最高
-        assert result["白酒ETF"] > 0
+        # VALUE 组当前已达 95%，组约束优先于单资产空间。
+        assert result["白酒ETF"] == 0
+        assert result["国债ETF"] == pytest.approx(5_000)
 
     def test_equity_budget_zero(self):
         """权益预算为 0 → 全部进国债（或无分配）"""

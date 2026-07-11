@@ -5,6 +5,21 @@ export interface Zone {
   label: string;
 }
 
+export interface PercentilePoint {
+  date: string;
+  percentilePct: number;
+}
+
+export function historyToPercentileSeries(
+  points: Array<{ date: string; percentile?: number }>,
+): PercentilePoint[] {
+  return points.flatMap(point => (
+    typeof point.percentile === 'number' && Number.isFinite(point.percentile)
+      ? [{ date: point.date, percentilePct: Math.max(0, Math.min(100, point.percentile * 100)) }]
+      : []
+  ));
+}
+
 /**
  * equityRatio（权益投资上限比例）→ 温度色区。
  *

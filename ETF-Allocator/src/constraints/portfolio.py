@@ -115,7 +115,8 @@ def check_factor_group_constraint(
 
             # 当前组市值
             current_group_value = sum(
-                current_weights[a] * total_assets for a in group_assets
+                current_weights.get(a, 0.0) * total_assets
+                for a, cfg in ASSETS.items() if cfg["factor_group"] == grp
             )
             # 允许的组上限
             allowed_group_value = cap * (total_assets + sum(allocations.values()))

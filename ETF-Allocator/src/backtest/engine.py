@@ -19,7 +19,7 @@ from typing import Dict, Optional, List, Any, Tuple
 
 # ---- config ----
 from config.settings import (
-    ASSETS, TRAIN_START, TRAIN_END, TEST_START, TEST_END,
+    ASSETS, TARGET_BANDS, TRAIN_START, TRAIN_END, TEST_START, TEST_END,
     WINDOW_PE_PERCENTILE_YEARS, WINDOW_MOMENTUM_DAYS,
     EXCLUDE_INDEX_BACKFILL, KECHUANG_TREND_OFF_MULTIPLIER,
     BOND_MIN_PURCHASE, BOND_CASH_YIELD,
@@ -69,7 +69,8 @@ def _build_series(rows: List[Dict], field: str) -> pd.Series:
         val = r.get(field)
         td  = r.get("trade_date")
         if val is not None and td is not None:
-            data[str(td)] = float(val)
+            from src.store.normalization import normalize_iso_date
+            data[normalize_iso_date(td)] = float(val)
     s = pd.Series(data)
     s.index = pd.to_datetime(s.index)
     return s.sort_index()
@@ -228,16 +229,20 @@ def compute_metrics(
         return {"annualized_return": None, "max_drawdown": None,
                 "calmar": None, "sharpe": None}
 
-    arr       = np.array(portfolio_values, dtype=float)
-    final_val = arr[-1]
-    years     = n / 12.0
+    clean = np.array([r for r in monthly_returns
+                      if not np.isnan(r) and not np.isinf(r)], dtype=float)
+    if len(clean) == 0 or np.any(clean <= -1.0):
+        return {"annualized_return": None, "max_drawdown": None,
+                "calmar": None, "sharpe": None}
 
-    # CAGR
-    ann_ret = (final_val / total_invested) ** (1.0 / years) - 1.0 if years > 0 else None
+    # External cash flows have already been removed from monthly_returns.
+    # Build a unit NAV so every metric uses the same cashflow-aware series.
+    nav = np.concatenate(([1.0], np.cumprod(1.0 + clean)))
+    years = len(clean) / 12.0
+    ann_ret = float(nav[-1] ** (1.0 / years) - 1.0) if years > 0 else None
 
-    # max drawdown (avoid div-by-zero when starting at 0)
-    runmax = np.maximum.accumulate(arr)
-    draws  = np.divide(arr, runmax, out=np.ones_like(arr), where=runmax > 0) - 1.0
+    runmax = np.maximum.accumulate(nav)
+    draws = nav / runmax - 1.0
     max_dd = float(np.min(draws))
 
     # Calmar
@@ -247,8 +252,6 @@ def compute_metrics(
         calmar = None
 
     # Sharpe (annualized)
-    clean = np.array([r for r in monthly_returns
-                      if not np.isnan(r) and not np.isinf(r)], dtype=float)
     if len(clean) >= 2:
         std = float(clean.std(ddof=1))
         mu  = float(clean.mean())
@@ -262,6 +265,16 @@ def compute_metrics(
         "calmar":            float(calmar) if calmar is not None else None,
         "sharpe":            float(sharpe) if sharpe is not None else None,
     }
+
+
+def _nav_from_returns(monthly_returns: List[float]) -> List[float]:
+    """Build an auditable unit-NAV series from cashflow-adjusted returns."""
+    nav = [1.0]
+    for value in monthly_returns:
+        if np.isnan(value) or np.isinf(value):
+            continue
+        nav.append(nav[-1] * (1.0 + float(value)))
+    return nav
 
 
 # ============================================================
@@ -369,6 +382,12 @@ def run_backtest(
 
         # ---- 2. scores ----
         scores = score_all(factors)
+        # An index factor may exist years before its ETF is listed. A signal is
+        # not executable until a point-in-time market price exists.
+        scores = {
+            name: (score if prices.get(name, 0.0) > 0 else None)
+            for name, score in scores.items()
+        }
 
         # ---- 3. regime thermometer ----
         p1, p2 = _thermometer_inputs(conn, d, exclude_backfill)
@@ -384,10 +403,13 @@ def run_backtest(
             vols[name] = factor_annualized_vol(_build_series(rows, "close_adj"))
 
         upper_limits = all_effective_limits(vols)
-        upper_limits = {n: (v if v is not None else 0.30) for n, v in upper_limits.items()}
+        upper_limits = {
+            n: (v if v is not None else TARGET_BANDS.get(n, (0.0, 0.30))[1])
+            for n, v in upper_limits.items()
+        }
 
         # ---- 5. constraints (buy caps + group caps) ----
-        _ = apply_constraints(current_weights, upper_limits, max(total_assets, 1.0))
+        constraints = apply_constraints(current_weights, upper_limits, total_assets)
 
         # ---- 6. allocate ----
         equity_budget = new_money_per_month * eq_ratio
@@ -397,8 +419,9 @@ def run_backtest(
             opportunity_scores=scores,
             current_weights=current_weights,
             upper_limits=upper_limits,
-            total_assets=max(total_assets, 1.0),
+            total_assets=total_assets,
             equity_budget=equity_budget,
+            buy_coefficients=constraints["buy_coefficients"],
         )
 
         # ---- v1.3: bond accumulator ----
@@ -439,6 +462,8 @@ def run_backtest(
             "allocations":     alloc,
             "current_weights": current_weights,
             "scores":          {k: v for k, v in scores.items()},
+            "factors":         factors,
+            "constraints":     constraints,
             "bond_status":     bond_accumulator.get_status(),
             "bond_action":     {"buy": bond_action.buy, "lots": bond_action.lots,
                                 "amount": bond_action.amount, "interest": bond_interest},
@@ -458,5 +483,7 @@ def run_backtest(
         "total_invested":  round(total_invested, 2),
         "final_value":     round(final_value, 2) if final_value is not None else None,
         "metrics":         metrics,
+        "monthly_returns": [float(r) for r in monthly_returns],
+        "nav_series":      _nav_from_returns(monthly_returns),
         "monthly_results": monthly_records,
     }

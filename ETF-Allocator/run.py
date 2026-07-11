@@ -40,12 +40,12 @@ from config.settings import (
 )
 from src.store.schema import create_tables
 from src.datasource.akshare_adapter import fetch_etf_price, fetch_index_valuation
-from src.factors.value import pe_percentile, pb_percentile
+from src.factors.value import pe_percentile, pb_percentile, compute_zscore
 from src.factors.dividend import dividend_yield_percentile
 from src.factors.momentum import momentum_120d, ma_trend_200d
 from src.factors.risk import annualized_volatility
 from src.scoring.engine import score_all
-from src.regime.thermometer import equity_ratio
+from src.regime.thermometer import equity_ratio, load_persistence, save_persistence
 from src.risk.controller import all_effective_limits, reset_recovery_tracking
 from src.constraints.portfolio import apply_constraints
 from src.allocation.allocator import allocate
@@ -157,7 +157,7 @@ def load_price_series(
 
 
 def load_valuation_series(
-    conn: sqlite3.Connection, index_code: str, field: str
+    conn: sqlite3.Connection, index_code: str, field: str, decision_date: date = None,
 ) -> pd.Series:
     """
     从数据库加载指数估值序列（pe / pb / dividend_yield）。
@@ -166,12 +166,20 @@ def load_valuation_series(
     if field not in valid_fields:
         raise ValueError(f"field must be one of {valid_fields}")
 
-    query = (
-        f"SELECT trade_date, {field} FROM index_valuation "
-        f"WHERE index_code = ? AND {field} IS NOT NULL "
-        f"ORDER BY trade_date"
-    )
-    rows = conn.execute(query, (index_code,)).fetchall()
+    if decision_date is not None:
+        from src.store.validator import get_available_valuations
+        available = get_available_valuations(conn, decision_date, index_code)
+        rows = [
+            (item["trade_date"], item[field])
+            for item in available if item.get(field) is not None
+        ]
+    else:
+        query = (
+            f"SELECT trade_date, {field} FROM index_valuation "
+            f"WHERE index_code = ? AND {field} IS NOT NULL "
+            f"ORDER BY trade_date"
+        )
+        rows = conn.execute(query, (index_code,)).fetchall()
 
     if not rows:
         return pd.Series(dtype=float)
@@ -208,9 +216,9 @@ def calculate_factors(conn: sqlite3.Connection, latest_date: date) -> dict:
 
         # 估值因子（通过 tracking index，独立于 ETF 价格）
         if tracking:
-            pe_series = load_valuation_series(conn, tracking, "pe")
-            pb_series = load_valuation_series(conn, tracking, "pb")
-            dy_series = load_valuation_series(conn, tracking, "dividend_yield")
+            pe_series = load_valuation_series(conn, tracking, "pe", latest_date)
+            pb_series = load_valuation_series(conn, tracking, "pb", latest_date)
+            dy_series = load_valuation_series(conn, tracking, "dividend_yield", latest_date)
 
             # 截断
             if not pe_series.empty:
@@ -230,11 +238,18 @@ def calculate_factors(conn: sqlite3.Connection, latest_date: date) -> dict:
                 asset_factors["pb_percentile"] = pb_percentile(
                     pb_series, max_window_years=WINDOW_PE_PERCENTILE_YEARS
                 )
+                asset_factors["pb_zscore"] = compute_zscore(
+                    pb_series, max_window_years=WINDOW_PE_PERCENTILE_YEARS
+                )
             # 股息率分位——数据不足时不做回退
             if name in ("银行ETF", "红利ETF"):
                 asset_factors["dividend_percentile"] = dividend_yield_percentile(
                     dy_series, max_window_years=WINDOW_PE_PERCENTILE_YEARS
                 )
+                if name == "银行ETF":
+                    asset_factors["dividend_zscore"] = compute_zscore(
+                        dy_series, max_window_years=WINDOW_PE_PERCENTILE_YEARS
+                    )
 
         # 动量因子（科创50）
         if name == "科创50ETF":
@@ -336,7 +351,7 @@ def _demo_factors() -> dict:
     """
     return {
         "白酒ETF":    {"pe_percentile": 0.15, "volatility": 0.25},
-        "银行ETF":    {"pb_percentile": 0.22, "dividend_percentile": 0.80, "volatility": 0.20},
+        "银行ETF":    {"pb_percentile": 0.22, "dividend_percentile": 0.80, "pb_zscore": 0.80, "dividend_zscore": 1.10, "volatility": 0.20},
         "红利ETF":    {"dividend_percentile": 0.85, "volatility": 0.18},
         "沪深300ETF": {"pe_percentile": 0.55, "volatility": 0.22},
         "科创50ETF":  {"momentum_percentile": 0.70, "trend_multiplier": 1.0, "volatility": 0.35},
@@ -416,7 +431,7 @@ def run_report(verbose: bool = False, demo: bool = False,
         hs300_factors = factors.get("沪深300ETF", {})
         hs300_pe_pct = hs300_factors.get("pe_percentile")
         # 全A PB分位：从 000985（上证50替代）加载 PB 序列并计算
-        all_a_pb_series = load_valuation_series(conn, "000985", "pb")
+        all_a_pb_series = load_valuation_series(conn, "000985", "pb", latest_date)
         if not all_a_pb_series.empty:
             all_a_pb_series = all_a_pb_series[all_a_pb_series.index <= pd.Timestamp(latest_date)]
         all_a_pb_pct = pb_percentile(all_a_pb_series, max_window_years=WINDOW_PE_PERCENTILE_YEARS) if not all_a_pb_series.empty else None
@@ -432,13 +447,28 @@ def run_report(verbose: bool = False, demo: bool = False,
 
     # ── 5. 市场温度计 ──
     print("[STEP 5] 市场温度计...")
+    regime_state_path = PROJECT_ROOT / "data" / "db" / "regime_state.json"
+    load_persistence(regime_state_path)
     eq_ratio, bond_ratio = equity_ratio(hs300_pe_pct, all_a_pb_pct)
+    save_persistence(regime_state_path)
     overheated = (
         hs300_pe_pct is not None and all_a_pb_pct is not None
         and hs300_pe_pct > 0.90 and all_a_pb_pct > 0.90
     )
-    temp_detail = "双分位均>90%，触发过热降温" if overheated else "正常（未触发过热阈值）"
-    temp_label = "过热（双>90%）" if overheated else "正常"
+    def _temp_tier(value):
+        if value is None:
+            return None
+        if value < 0.60:
+            return 0
+        if value < 0.80:
+            return 1
+        if value < 0.90:
+            return 2
+        return 3
+    frozen = _temp_tier(hs300_pe_pct) != _temp_tier(all_a_pb_pct)
+    labels = {1.0: "正常（双<60%）", 0.7: "中等偏高（双60%-80%）", 0.4: "高温（双80%-90%）", 0.3: "过热（双>90%）"}
+    temp_label = "冻结（双指标档位不一致）" if frozen else labels.get(eq_ratio, "数据不足")
+    temp_detail = "维持上一期权益比例" if frozen else f"双指标同档，权益比例 {eq_ratio:.0%}"
 
     temp_result = {
         "temperature": max(hs300_pe_pct or 0, all_a_pb_pct or 0),
@@ -490,6 +520,7 @@ def run_report(verbose: bool = False, demo: bool = False,
         upper_limits=limits,
         total_assets=total_assets,
         equity_budget=equity_budget,
+        buy_coefficients=constraints_result["buy_coefficients"],
     )
 
     # v1.3: 国债通过累积池执行，解决场内最低买入门槛

@@ -1,4 +1,5 @@
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from 'recharts';
+import type { BaseTickContentProps } from 'recharts';
 
 interface Props {
   scores: Record<string, number | null>;
@@ -33,15 +34,18 @@ export function FactorRadarWidget({ scores }: Props) {
           <PolarGrid stroke="#E5E7EB" />
           <PolarAngleAxis
             dataKey="name"
-            tick={({ payload, x, y }: any) => {
-              const d = data.find(d => d.name === payload.value);
+            tick={({ payload, x, y }: BaseTickContentProps) => {
+              const xPosition = Number(x);
+              const yPosition = Number(y);
+              const value = String(payload?.value ?? '');
+              const d = data.find(item => item.name === value);
               const color = d?.hasData ? '#374151' : '#D1D5DB';
               const showScore = d?.hasData && d.rawScore != null;
               return (
-                <text x={x} y={y} fill={color} fontSize={11} textAnchor="middle" dominantBaseline="central">
-                  <tspan x={x} dy={-6} fill={color}>{payload.value}</tspan>
+                <text x={xPosition} y={yPosition} fill={color} fontSize={11} textAnchor="middle" dominantBaseline="central">
+                  <tspan x={xPosition} dy={-6} fill={color}>{value}</tspan>
                   {showScore && (
-                    <tspan x={x} dy={14} fill={scoreTickColor(d.rawScore!)} fontSize={12} fontWeight="bold">
+                    <tspan x={xPosition} dy={14} fill={scoreTickColor(d.rawScore!)} fontSize={12} fontWeight="bold">
                       {Math.round(d.rawScore! * 100)}分
                     </tspan>
                   )}

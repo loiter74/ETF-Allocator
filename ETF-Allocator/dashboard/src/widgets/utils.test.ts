@@ -1,5 +1,27 @@
 import { describe, it, expect } from 'vitest';
-import { zoneFor, ringColor, riskBarColor, scoreBadgeColor } from './utils';
+import { zoneFor, ringColor, riskBarColor, scoreBadgeColor, historyToPercentileSeries } from './utils';
+
+describe('historyToPercentileSeries', () => {
+  it('plots percentile instead of raw valuation values', () => {
+    const result = historyToPercentileSeries([
+      { date: '2026-06-01', percentile: 0.724 },
+      { date: '2026-06-02' },
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0].date).toBe('2026-06-01');
+    expect(result[0].percentilePct).toBeCloseTo(72.4);
+  });
+
+  it('clamps malformed percentile values to the chart domain', () => {
+    expect(historyToPercentileSeries([
+      { date: 'low', percentile: -0.2 },
+      { date: 'high', percentile: 1.4 },
+    ])).toEqual([
+      { date: 'low', percentilePct: 0 },
+      { date: 'high', percentilePct: 100 },
+    ]);
+  });
+});
 
 // ── zoneFor — 温度计色区 ──
 

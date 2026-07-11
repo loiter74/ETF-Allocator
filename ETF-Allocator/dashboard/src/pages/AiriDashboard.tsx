@@ -1,4 +1,3 @@
-import { ThemeProvider } from '../contexts/ThemeContext';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useSimulate } from '../hooks/useReport';
 import { ThermometerWidget } from '../widgets/ThermometerWidget';
@@ -8,12 +7,12 @@ import { FactorRadarWidget } from '../widgets/FactorRadarWidget';
 import { RiskBarWidget } from '../widgets/RiskBarWidget';
 import { ValuationChartWidget } from '../widgets/ValuationChartWidget';
 import { ActivityLogWidget } from '../widgets/ActivityLogWidget';
-import NavBar from '../components/NavBar';
 import GlassCard from '../components/GlassCard';
 import { ExportPanel } from '../components/ExportPanel';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ETF_TRACKING_INDEX } from '../types';
-import type { MonthlyReport } from '../types';
+import type { HistoryResponse, MonthlyReport } from '../types';
+import { formatLocalDate } from '../lib/utils';
 
 const DEFAULT_HOLDINGS = [
   { name: '白酒ETF', code: '161725', amount: 0 },
@@ -23,6 +22,41 @@ const DEFAULT_HOLDINGS = [
   { name: '科创50ETF', code: '588000', amount: 0 },
   { name: '国债ETF', code: '511010', amount: 0 },
 ];
+
+type Holding = (typeof DEFAULT_HOLDINGS)[number];
+
+function loadHoldings(): Holding[] {
+  try {
+    const raw = localStorage.getItem('etf-allocator-holdings');
+    if (!raw) return DEFAULT_HOLDINGS;
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return DEFAULT_HOLDINGS;
+
+    return DEFAULT_HOLDINGS.map(defaultHolding => {
+      const saved = parsed.find((item): item is Partial<Holding> => (
+        typeof item === 'object' && item !== null && 'name' in item && item.name === defaultHolding.name
+      ));
+      return {
+        ...defaultHolding,
+        amount: typeof saved?.amount === 'number' && Number.isFinite(saved.amount)
+          ? Math.max(0, saved.amount)
+          : defaultHolding.amount,
+      };
+    });
+  } catch {
+    return DEFAULT_HOLDINGS;
+  }
+}
+
+function loadNewMoney(): number {
+  try {
+    const saved = localStorage.getItem('etf-allocator-new-money');
+    const value = saved == null ? 8000 : Number(saved);
+    return Number.isFinite(value) && value >= 0 ? value : 8000;
+  } catch {
+    return 8000;
+  }
+}
 
 function useValuationHistory(asset: string, years: number) {
   const [history, setHistory] = useState<{ date: string; pePercentile: number | null; pbPercentile: number | null }[]>([]);
@@ -36,12 +70,16 @@ function useValuationHistory(asset: string, years: number) {
           fetch(`/api/history?index=${indexCode}&field=pb&years=${years}`),
         ]);
         if (cancelled) return;
-        const peJson = await peRes.json(); const pbJson = await pbRes.json();
-        const peMap = new Map<string, number | null>((peJson.data ?? []).map((d: any) => [d.date, d.percentile ?? null]));
-        const pbMap = new Map<string, number | null>((pbJson.data ?? []).map((d: any) => [d.date, d.percentile ?? null]));
+        if (!peRes.ok || !pbRes.ok) throw new Error(`History API ${peRes.status}/${pbRes.status}`);
+        const peJson: HistoryResponse = await peRes.json();
+        const pbJson: HistoryResponse = await pbRes.json();
+        const peMap = new Map<string, number | null>(peJson.data.map(d => [d.date, d.percentile ?? null]));
+        const pbMap = new Map<string, number | null>(pbJson.data.map(d => [d.date, d.percentile ?? null]));
         const allDates = [...new Set([...peMap.keys(), ...pbMap.keys()])].sort();
         setHistory(allDates.map(d => ({ date: d, pePercentile: peMap.get(d) ?? null, pbPercentile: pbMap.get(d) ?? null })));
-      } catch { if (!cancelled) setHistory([]); }
+      } catch {
+        if (!cancelled) setHistory([]);
+      }
     }
     fetchBoth();
     return () => { cancelled = true; };
@@ -93,40 +131,39 @@ export default function AiriDashboard() {
   const [years, setYears] = useState(5);
 
   // 持仓持久化：从 localStorage 恢复
-  const [holdings, setHoldings] = useState<typeof DEFAULT_HOLDINGS>(() => {
-    try {
-      const saved = localStorage.getItem('etf-allocator-holdings');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return DEFAULT_HOLDINGS;
-  });
-  const [newMoney, setNewMoney] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem('etf-allocator-new-money');
-      if (saved) return parseInt(saved, 10) || 8000;
-    } catch {}
-    return 8000;
-  });
+  const [holdings, setHoldings] = useState<typeof DEFAULT_HOLDINGS>(loadHoldings);
+  const [newMoney, setNewMoney] = useState<number>(loadNewMoney);
   const valuationHistory = useValuationHistory(selectedAsset, years);
 
   const totalAssets = holdings.reduce((s, h) => s + h.amount, 0);
 
   // 用模拟结果覆盖 dashboard 数据
-  const report: MonthlyReport | null = simData
-    ? {
+  const report = useMemo<MonthlyReport | null>(() => simData
+    ? (() => {
+        const equityAllocated = simData.allocations
+          .filter(allocation => allocation.asset !== '国债ETF')
+          .reduce((sum, allocation) => sum + allocation.amount, 0);
+        const bondDeposit = Math.max(0, simData.new_money - equityAllocated);
+        return {
         date: simData.date,
-        market_temp: dash.report?.market_temp ?? { equity_ratio: 0.7, bond_ratio: 0.3, status: 'cool',
+        market_temp: dash.report?.market_temp ?? { equity_ratio: 0.7, bond_ratio: 0.3, status: 'frozen',
           hs300_pe_percentile: 0, all_a_pb_percentile: 0, hs300_pe_percentile_long: null, all_a_pb_percentile_long: null },
         portfolio_risk: dash.report?.portfolio_risk ?? { value_group_weight: 0, value_group_cap: 0.6, growth_group_weight: 0, growth_group_cap: 0.15, next_rebalance_date: '' },
-        allocations: simData.allocations.map((a: any) => ({
+        allocations: simData.allocations.map(a => ({
           ...a,
           trigger_reason: a.trigger_reason ?? '',
           current_weight: a.current_weight ?? 0,
           upper_limit: a.upper_limit ?? 0.3,
         })),
         new_money: newMoney,
-      }
-    : dash.report;
+        bond_status: simData.bond_status ? {
+          ...simData.bond_status,
+          deposit_this_month: simData.bond_status.deposit_this_month ?? bondDeposit,
+          interest_this_month: simData.bond_status.interest_this_month ?? 0,
+        } : undefined,
+      };
+      })()
+    : dash.report, [dash.report, newMoney, simData]);
 
   const handleHoldingsChange = useCallback((index: number, value: number) => {
     setHoldings(prev => prev.map((h, i) => (i === index ? { ...h, amount: Math.max(0, value) } : h)));
@@ -139,25 +176,31 @@ export default function AiriDashboard() {
     }
     const weights: Record<string, number> = {};
     holdings.forEach(h => { weights[h.name] = h.amount / totalAssets; });
-    const today = new Date();
-    const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    simulate({ date: dateStr, new_money: newMoney, total_assets: totalAssets, current_weights: weights });
+    simulate({ date: formatLocalDate(), new_money: newMoney, total_assets: totalAssets, current_weights: weights });
     // 持久化到 localStorage
     try {
       localStorage.setItem('etf-allocator-holdings', JSON.stringify(holdings));
       localStorage.setItem('etf-allocator-new-money', String(newMoney));
-    } catch {}
+    } catch {
+      // The calculation still succeeds when browser storage is unavailable.
+    }
   };
 
   // 从 report 提取 scores 和 allocations 数据
-  const allocs: Record<string, { amount: number; triggerReason: string; opportunityScore: number | null; code?: string }> = {};
-  const scores: Record<string, number | null> = {};
-  if (report?.allocations) {
-    for (const a of report.allocations) {
-      allocs[a.asset] = { amount: a.amount, triggerReason: a.trigger_reason, opportunityScore: a.opportunity_score, code: (a as any).code };
-      scores[a.asset] = a.opportunity_score;
+  const { allocs, scores } = useMemo(() => {
+    const nextAllocs: Record<string, { amount: number; triggerReason: string; opportunityScore: number | null; code?: string }> = {};
+    const nextScores: Record<string, number | null> = {};
+    for (const allocation of report?.allocations ?? []) {
+      nextAllocs[allocation.asset] = {
+        amount: allocation.amount,
+        triggerReason: allocation.trigger_reason,
+        opportunityScore: allocation.opportunity_score,
+        code: allocation.code,
+      };
+      nextScores[allocation.asset] = allocation.opportunity_score;
     }
-  }
+    return { allocs: nextAllocs, scores: nextScores };
+  }, [report]);
 
   // ── 纯文本导出（微信/SMS 友好，无表格线） ──
   const exportText = useMemo(() => {
@@ -189,8 +232,9 @@ export default function AiriDashboard() {
       pePct != null && pbPct != null
         ? `   PE ${pePct}%${pePct >= 90 ? '🔴' : pePct >= 80 ? '🟠' : pePct >= 60 ? '🟡' : '🟢'} · PB ${pbPct}%${pbPct >= 90 ? '🔴' : pbPct >= 80 ? '🟠' : pbPct >= 60 ? '🟡' : '🟢'}`
         : '',
-      `   ⏸️ 冻结：PE(${pePct ?? '?'}%) vs PB(${pbPct ?? '?'}%) 信号不一致` +
-        (eqPct === 70 ? ' → 维持默认70%' : ''),
+      ...(t.status === 'frozen'
+        ? [`   ⏸️ 冻结：PE(${pePct ?? '?'}%) vs PB(${pbPct ?? '?'}%) 信号不一致${eqPct === 70 ? ' → 维持默认70%' : ''}`]
+        : []),
       '',
       `💰 新增资金  ¥${(report.new_money ?? 0).toLocaleString()}`,
     ];
@@ -198,8 +242,8 @@ export default function AiriDashboard() {
     // 权益缺口：温度计建议 vs 约束后实际
     const targetEq = (report.new_money ?? 0) * t.equity_ratio;
     const actualEq = report.allocations
-      .filter((a: any) => a.asset !== '国债ETF')
-      .reduce((s: number, a: any) => s + Math.round(a.amount), 0);
+      .filter(a => a.asset !== '国债ETF')
+      .reduce((sum, allocation) => sum + Math.round(allocation.amount), 0);
     const eqGap = Math.round(targetEq - actualEq);
     if (eqGap > 10) {
       lines.push(`   🌡️ 温度计建议  ¥${Math.round(targetEq).toLocaleString()}`);
@@ -210,7 +254,7 @@ export default function AiriDashboard() {
 
     // 持仓占比
     const curWt2: Record<string, number> = {};
-    for (const a of report.allocations) curWt2[a.asset] = (a as any).current_weight ?? 0;
+    for (const a of report.allocations) curWt2[a.asset] = a.current_weight ?? 0;
     const hasHoldings = Object.values(curWt2).some(v => v > 0);
     if (hasHoldings) {
       lines.push('📋 分配前持仓');
@@ -300,9 +344,6 @@ export default function AiriDashboard() {
   // ... return JSX with share button
 
   return (
-    <ThemeProvider>
-      <div className="min-h-screen font-sans bg-[#FFFBF0]">
-        <NavBar />
         <main className="px-4 sm:px-6 pb-8">
           {/* ── 持仓设置（可折叠） ── */}
           <details className="mb-4 group" open={false}>
@@ -332,6 +373,11 @@ export default function AiriDashboard() {
 
           {report ? (
             <div className="space-y-4">
+              {dash.error && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-sm text-amber-800 mb-4" role="status">
+                  数据刷新失败，当前显示上次成功结果。{dash.error}
+                </div>
+              )}
               {report.warnings && report.warnings.length > 0 && (
                 <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-sm text-amber-800 mb-4">
                   {report.warnings.map((w: string, i: number) => <div key={i}>⚠ {w}</div>)}
@@ -362,7 +408,7 @@ export default function AiriDashboard() {
 📊 沪深300 1 − PE分位  
 🔬 科创50  动量分位 × 趋势乘数
 🏛 国债    不参与评分（吸收口）">
-                <AllocationCardsWidget allocations={allocs} onSelect={setSelectedAsset} selectedAsset={selectedAsset} bondStatus={dash.bondStatus} />
+                <AllocationCardsWidget allocations={allocs} onSelect={setSelectedAsset} selectedAsset={selectedAsset} bondStatus={report.bond_status ?? dash.bondStatus} />
               </GlassCard>
 
               {/* Row 3: 因子雷达 | 估值分位 */}
@@ -404,7 +450,5 @@ export default function AiriDashboard() {
             </div>
           )}
         </main>
-      </div>
-    </ThemeProvider>
   );
 }

@@ -13,7 +13,9 @@ ds.v1.2 §七 设计（4档分级 + 不一致冻结）：
   双 80-90% → 权益 40%
   双 >90%  → 权益 30%
 """
-from typing import Optional, Tuple
+import json
+from pathlib import Path
+from typing import Optional, Tuple, Union
 
 from config.settings import TEMP_THRESHOLDS, TEMP_EQUITY_RATIOS, THERMOMETER_DEFAULT_EQUITY
 
@@ -77,8 +79,68 @@ def equity_ratio(
     return (THERMOMETER_DEFAULT_EQUITY, round(1.0 - THERMOMETER_DEFAULT_EQUITY, 10))
 
 
+def resolve_equity_ratio(
+    p1: Optional[float],
+    p2: Optional[float],
+    previous_equity_ratio: Optional[float] = None,
+) -> Tuple[float, float]:
+    """Pure thermometer calculation for read-only APIs."""
+    if p1 is None or p2 is None or _tier(p1) != _tier(p2):
+        equity = (
+            previous_equity_ratio
+            if previous_equity_ratio is not None
+            else THERMOMETER_DEFAULT_EQUITY
+        )
+    else:
+        equity = TEMP_EQUITY_RATIOS[_tier(p1)]
+    return (float(equity), round(1.0 - float(equity), 10))
+
+
 def reset_persistence() -> None:
     """重置持久化状态（用于测试和回测初始化）。"""
     global _last_equity_ratio, _last_bond_ratio
     _last_equity_ratio = None
     _last_bond_ratio = None
+
+
+def load_persistence(path: Union[str, Path]) -> None:
+    """Load the last valid ratio for a real cross-process monthly run."""
+    global _last_equity_ratio, _last_bond_ratio
+    state_path = Path(path)
+    if not state_path.exists():
+        return
+    try:
+        payload = json.loads(state_path.read_text(encoding="utf-8"))
+        equity = float(payload["equity_ratio"])
+        if not 0.0 <= equity <= 1.0:
+            raise ValueError("equity ratio out of range")
+        _last_equity_ratio = equity
+        _last_bond_ratio = round(1.0 - equity, 10)
+    except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError):
+        reset_persistence()
+
+
+def read_persistence(path: Union[str, Path]) -> Optional[float]:
+    """Read the persisted ratio without mutating module state."""
+    state_path = Path(path)
+    if not state_path.exists():
+        return None
+    try:
+        equity = float(json.loads(state_path.read_text(encoding="utf-8"))["equity_ratio"])
+        return equity if 0.0 <= equity <= 1.0 else None
+    except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError):
+        return None
+
+
+def save_persistence(path: Union[str, Path]) -> None:
+    """Atomically persist the last valid ratio, if one exists."""
+    if _last_equity_ratio is None:
+        return
+    state_path = Path(path)
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = state_path.with_suffix(state_path.suffix + ".tmp")
+    temp_path.write_text(
+        json.dumps({"equity_ratio": _last_equity_ratio}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    temp_path.replace(state_path)

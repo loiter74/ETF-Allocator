@@ -45,11 +45,15 @@ def _asset_trigger_reason(
     elif asset_name == "银行ETF":
         pb = asset_factors.get("pb_percentile")
         dy = asset_factors.get("dividend_percentile")
+        pb_z = asset_factors.get("pb_zscore")
+        dy_z = asset_factors.get("dividend_zscore")
         parts = []
         if pb is not None:
             parts.append(f"PB分位 {pb:.0%}")
         if dy is not None:
             parts.append(f"股息率分位 {dy:.0%}")
+        if pb_z is not None and dy_z is not None:
+            parts.append(f"z值 {pb_z:.2f}/{dy_z:.2f}")
         return ", ".join(parts) if parts else "估值数据缺失"
     
     elif asset_name == "红利ETF":
@@ -174,7 +178,7 @@ def generate_report(
         can_buy = bond_status.get("can_buy", False)
         lots = bond_status.get("lots_available", 0)
 
-        pool_total = balance + bond_amount  # 本月入池后的总额
+        pool_total = balance  # accumulator 状态已包含本月存入与执行结果
         lines.append(f"本月固收应配： {_fmt_amount(bond_amount)}")
         interest_str = f"（含逆回购收益 {_fmt_amount(total_interest)}）" if total_interest > 0 else ""
         lines.append(f"累积池存量：   {_fmt_amount(balance)}{interest_str}")

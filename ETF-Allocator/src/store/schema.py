@@ -5,7 +5,9 @@ store/schema.py — SQLite 建表语句与基础 CRUD。
 import sqlite3
 from typing import Optional
 
-SCHEMA_VERSION = 1
+from src.store.normalization import normalize_dividend_yield, normalize_iso_date
+
+SCHEMA_VERSION = 3
 
 DDL = """
 -- 指数元信息：基日 vs 发布日，用于识别"回填段"
@@ -55,6 +57,30 @@ CREATE TABLE IF NOT EXISTS etf_factor (
     opportunity_score REAL,
     PRIMARY KEY (code, calc_date, factor_name)
 );
+
+-- 用户确认的真实追加投入；与模拟/分配结果分离
+CREATE TABLE IF NOT EXISTS investment_record (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    investment_date DATE NOT NULL,
+    amount_cents    INTEGER NOT NULL CHECK (amount_cents > 0),
+    note            TEXT NOT NULL DEFAULT '' CHECK (length(note) <= 200),
+    created_at      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    UNIQUE (investment_date, amount_cents, note)
+);
+
+CREATE INDEX IF NOT EXISTS idx_investment_record_date
+ON investment_record (investment_date DESC, id DESC);
+
+-- 每次真实投入在六个资产之间的分项；旧记录可没有子项
+CREATE TABLE IF NOT EXISTS investment_record_item (
+    record_id    INTEGER NOT NULL,
+    asset        TEXT NOT NULL CHECK (
+        asset IN ('白酒ETF', '银行ETF', '红利ETF', '沪深300ETF', '科创50ETF', '国债ETF')
+    ),
+    amount_cents INTEGER NOT NULL CHECK (amount_cents >= 0),
+    PRIMARY KEY (record_id, asset),
+    FOREIGN KEY (record_id) REFERENCES investment_record(id) ON DELETE CASCADE
+);
 """
 
 
@@ -78,7 +104,10 @@ def insert_etf_info(
     conn.execute(
         """INSERT INTO etf_info (code, name, asset_class, factor_group, tracking_index, list_date)
            VALUES (?, ?, ?, ?, ?, ?)""",
-        (code, name, asset_class, factor_group, tracking_index, list_date),
+        (
+            code, name, asset_class, factor_group, tracking_index,
+            normalize_iso_date(list_date, allow_none=True),
+        ),
     )
     conn.commit()
 
@@ -93,7 +122,11 @@ def insert_index_info(
     conn.execute(
         """INSERT INTO index_info (index_code, name, base_date, publish_date)
            VALUES (?, ?, ?, ?)""",
-        (index_code, name, base_date, publish_date),
+        (
+            index_code, name,
+            normalize_iso_date(base_date),
+            normalize_iso_date(publish_date),
+        ),
     )
     conn.commit()
 
@@ -116,7 +149,14 @@ def insert_index_valuation(
                pb = excluded.pb,
                dividend_yield = excluded.dividend_yield,
                publish_date = excluded.publish_date""",
-        (index_code, trade_date, pe, pb, dividend_yield, publish_date),
+        (
+            index_code,
+            normalize_iso_date(trade_date),
+            pe,
+            pb,
+            normalize_dividend_yield(dividend_yield),
+            normalize_iso_date(publish_date),
+        ),
     )
     conn.commit()
 
@@ -134,6 +174,6 @@ def insert_etf_price(
            ON CONFLICT(code, trade_date) DO UPDATE SET
                close_adj = excluded.close_adj,
                volume = excluded.volume""",
-        (code, trade_date, close_adj, volume),
+        (code, normalize_iso_date(trade_date), close_adj, volume),
     )
     conn.commit()

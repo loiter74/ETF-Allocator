@@ -11,31 +11,43 @@ export const themes: Theme[] = [
   { name: 'mint',   hue: 160, label: 'Mint',   colorClass: 'bg-emerald-400' },
 ];
 
-export function getSavedTheme(): Theme {
+function readStorage(key: string): string | null {
   try {
-    const saved = localStorage.getItem('etf-theme');
-    if (saved) {
-      const found = themes.find(t => t.name === saved);
-      if (found) return found;
-    }
-  } catch {}
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeStorage(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Storage may be unavailable in private browsing or restricted webviews.
+  }
+}
+
+export function getSavedTheme(): Theme {
+  const saved = readStorage('etf-theme');
+  if (saved) {
+    const found = themes.find(t => t.name === saved);
+    if (found) return found;
+  }
   return themes[0];
 }
 
 export function saveTheme(name: string) {
-  try { localStorage.setItem('etf-theme', name); } catch {}
+  writeStorage('etf-theme', name);
 }
 
 export function getSavedMode(): 'dark' | 'light' {
-  try {
-    const saved = localStorage.getItem('etf-mode');
-    if (saved === 'light' || saved === 'dark') return saved;
-  } catch {}
-  return 'dark';
+  const saved = readStorage('etf-mode');
+  if (saved === 'light' || saved === 'dark') return saved;
+  return 'light';
 }
 
 export function saveMode(mode: 'dark' | 'light') {
-  try { localStorage.setItem('etf-mode', mode); } catch {}
+  writeStorage('etf-mode', mode);
 }
 
 export function applyTheme(t: Theme) {
@@ -45,10 +57,6 @@ export function applyTheme(t: Theme) {
 }
 
 export function applyMode(mode: 'dark' | 'light') {
-  if (mode === 'light') {
-    document.documentElement.classList.add('light');
-  } else {
-    document.documentElement.classList.remove('light');
-  }
+  document.documentElement.classList.toggle('dark', mode === 'dark');
   saveMode(mode);
 }

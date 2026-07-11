@@ -157,7 +157,7 @@ class TestDashboardBuild:
             pytest.skip("node_modules not installed")
         result = subprocess.run(
             ["npx", "tsc", "--noEmit"],
-            cwd=str(dashboard_dir), capture_output=True, text=True, timeout=60,
+            cwd=str(dashboard_dir), capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
             shell=True,
         )
         assert result.returncode == 0, f"tsc errors:\n{result.stdout[-500:]}\n{result.stderr[-500:]}"
@@ -168,7 +168,7 @@ class TestDashboardBuild:
             pytest.skip("node_modules not installed")
         result = subprocess.run(
             ["npx", "vite", "build"],
-            cwd=str(dashboard_dir), capture_output=True, text=True, timeout=60,
+            cwd=str(dashboard_dir), capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
             shell=True,
         )
         assert result.returncode == 0, f"vite build failed:\n{result.stderr[-500:]}"

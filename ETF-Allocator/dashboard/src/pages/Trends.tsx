@@ -14,14 +14,14 @@ import GlassCard from '../components/GlassCard'
 import { SkeletonChart } from '../components/Skeleton'
 import { INDEX_MAP } from '../types'
 import type { HistoryPoint } from '../types'
+import { historyToPercentileSeries } from '../widgets/utils'
 
 type IndexKey = keyof typeof INDEX_MAP
 
 const INDEX_KEYS: IndexKey[] = ['沪深300', '中证白酒', '中证银行', '中证红利', '科创50']
 
 function formatTickDate(dateStr: string): string {
-  const d = new Date(dateStr)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  return dateStr.slice(0, 7)
 }
 
 interface CustomTooltipProps {
@@ -44,14 +44,13 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 
 export default function Trends() {
   const [selected, setSelected] = useState<IndexKey>('沪深300')
-  const { data, loading, error, setIndex } = useHistory(selected, 'pe', 5)
+  const { data, loading, error } = useHistory(selected, 'pe', 5)
 
   const handleSelect = (key: IndexKey) => {
     setSelected(key)
-    setIndex(key)
   }
 
-  const chartData: HistoryPoint[] = data ?? []
+  const chartData = historyToPercentileSeries((data ?? []) as HistoryPoint[])
 
   if (error) {
     return (
@@ -128,7 +127,7 @@ export default function Trends() {
                   />
                   <Line
                     type="monotone"
-                    dataKey="value"
+                    dataKey="percentilePct"
                     stroke="#7C3AED"
                     strokeWidth={2}
                     dot={false}

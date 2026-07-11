@@ -149,7 +149,6 @@ def allocate(
     allocation = _apply_group_constraint(allocation, current_weights, total_assets)
 
     # ── 6. 剩余资金进国债 ──
-    allocated_equity = sum(allocation.values())
     overflow = remaining
     if overflow > 0:
         allocation["国债ETF"] = allocation.get("国债ETF", 0) + overflow
@@ -184,10 +183,7 @@ def _initial_build_allocation(
     """
     初始建仓模式：无历史持仓时，按机会分分配。
 
-    两轮分配：
-    1. 首轮：按机会分降序，上限约束（防单资产过度集中）
-    2. 次轮：若有剩余，按机会分比例重新分给已分配的权益资产（跳过上限）
-    3. 最后仍有剩余才进国债
+    单轮按机会分降序分配并遵守上限，剩余资金进入国债。
     """
     allocation: Dict[str, float] = {}
     candidates = []
@@ -221,19 +217,6 @@ def _initial_build_allocation(
         alloc = min(cap, remaining)
         allocation[name] = alloc
         remaining -= alloc
-
-    # 次轮：剩余按机会分比例重新分给已有分配的资产
-    if remaining > 0:
-        # 只给已分配到钱的资产（有分数=>值得投）
-        allocated_assets = [c for c in candidates if allocation.get(c[0], 0) > 0]
-        if allocated_assets:
-            total_score = sum(c[1] for c in allocated_assets)
-            if total_score > 0:
-                for name, score, _cap in allocated_assets:
-                    extra = remaining * (score / total_score)
-                    allocation[name] += extra
-                    remaining -= extra
-                remaining = max(0, remaining)
 
     # ── 应用因子组约束后进国债 ──
     # 初始建仓时 total_assets=0，约束函数内 new_total = sum(allocation)
@@ -278,6 +261,7 @@ def _apply_group_constraint(
     for name, amt in allocation.items():
         new_weights[name] = (current_weights.get(name, 0.0) * total_assets + amt) / new_total
 
+    result = dict(allocation)
     for grp, cap in GROUP_CAPS.items():
         # 计算组当前权重（分配后）
         gw = sum(
@@ -291,33 +275,30 @@ def _apply_group_constraint(
         # 组内收到分配资金的资产
         group_allocated = [
             name for name, cfg in ASSETS.items()
-            if cfg["factor_group"] == grp and allocation.get(name, 0) > 0
+            if cfg["factor_group"] == grp and result.get(name, 0) > 0
         ]
         if not group_allocated:
             continue
 
         # 计算可新增金额的上限
         current_group_value = sum(
-            current_weights.get(a, 0.0) * total_assets for a in group_allocated
+            current_weights.get(a, 0.0) * total_assets
+            for a, cfg in ASSETS.items() if cfg["factor_group"] == grp
         )
         allowed_group_value = cap * new_total
         allowed_new = max(0.0, allowed_group_value - current_group_value)
-        current_new = sum(allocation[a] for a in group_allocated)
+        current_new = sum(result[a] for a in group_allocated)
 
         if current_new <= allowed_new:
             continue
 
         # 等比缩减
         scale = allowed_new / current_new if current_new > 0 else 0
-        result = dict(allocation)
         for a in group_allocated:
-            result[a] = allocation[a] * scale
+            result[a] = result[a] * scale
 
         # 溢出部分进国债
-        overflow = sum(allocation[a] for a in group_allocated) - sum(
-            result[a] for a in group_allocated
-        )
+        overflow = current_new - sum(result[a] for a in group_allocated)
         result["国债ETF"] = result.get("国债ETF", 0) + overflow
-        return result
 
-    return allocation
+    return result

@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { MonthlyReport, HistoryResponse, BondStatus } from '../types';
+import { formatLocalDate } from '../lib/utils';
 
 const BASE = '/api';
 const POLL_MS = 10000;
@@ -57,7 +58,7 @@ function transformReport(r: MonthlyReport): Partial<DashboardData> {
   const scores: Record<string, number | null> = {};
 
   for (const a of r.allocations) {
-    allocs[a.asset] = { amount: a.amount, triggerReason: a.trigger_reason, opportunityScore: a.opportunity_score, code: (a as any).code };
+    allocs[a.asset] = { amount: a.amount, triggerReason: a.trigger_reason, opportunityScore: a.opportunity_score, code: a.code };
     scores[a.asset] = a.opportunity_score;
   }
 
@@ -94,6 +95,7 @@ export function useDashboardData(): DashboardData {
   const [history, setHistory] = useState<{ date: string; pePercentile: number | null; pbPercentile: number | null }[]>([]);
   const [activityLog, setActivityLog] = useState<{ date: string; summary: string }[]>([]);
   const abortRef = useRef<AbortController | null>(null);
+  const historyAbortRef = useRef<AbortController | null>(null);
 
   const fetchReport = useCallback(async () => {
     abortRef.current?.abort();
@@ -101,7 +103,7 @@ export function useDashboardData(): DashboardData {
     abortRef.current = ctrl;
 
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = formatLocalDate();
       const res = await fetch(`${BASE}/report?date=${today}`, { signal: ctrl.signal });
       if (!res.ok) throw new Error(`API ${res.status}`);
       const json: MonthlyReport = await res.json();
@@ -116,10 +118,10 @@ export function useDashboardData(): DashboardData {
           const equityPct = Math.round(mkt.equity_ratio * 100);
           const targetEquity = (json.new_money ?? 0) * mkt.equity_ratio;
           const actualEquity = json.allocations
-            .filter((a: any) => a.asset !== '国债ETF')
-            .reduce((s: number, a: any) => s + a.amount, 0);
+            .filter(a => a.asset !== '国债ETF')
+            .reduce((sum, allocation) => sum + allocation.amount, 0);
           const gap = targetEquity - actualEquity;
-          const activeCount = json.allocations.filter((a: any) => a.amount > 0).length;
+          const activeCount = json.allocations.filter(a => a.amount > 0).length;
           const labels: Record<string, string> = {
             cool: '估值合理', mild_cool: '中等偏高', strong_cool: '明显偏贵', overheat: '极端过热', frozen: '温度冻结',
           };
@@ -146,12 +148,15 @@ export function useDashboardData(): DashboardData {
   }, []);
 
   const fetchHistory = useCallback(async () => {
+    historyAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    historyAbortRef.current = ctrl;
     try {
-      const ctrl = new AbortController();
       const [peRes, pbRes] = await Promise.all([
         fetch(`${BASE}/history?index=000300&field=pe`, { signal: ctrl.signal }),
         fetch(`${BASE}/history?index=000985&field=pb`, { signal: ctrl.signal }),
       ]);
+      if (!peRes.ok || !pbRes.ok) throw new Error(`History API ${peRes.status}/${pbRes.status}`);
       const pe: HistoryResponse = await peRes.json();
       const pb: HistoryResponse = await pbRes.json();
 
@@ -159,32 +164,39 @@ export function useDashboardData(): DashboardData {
       const pbMap = new Map(pb.data.map(d => [d.date, d.percentile]));
       const allDates = [...new Set([...peMap.keys(), ...pbMap.keys()])].sort();
 
-      setHistory(allDates.map(d => ({
-        date: d,
-        pePercentile: peMap.get(d) ?? null,
-        pbPercentile: pbMap.get(d) ?? null,
-      })));
-    } catch { /* history is optional */ }
+      if (!ctrl.signal.aborted) {
+        setHistory(allDates.map(d => ({
+          date: d,
+          pePercentile: peMap.get(d) ?? null,
+          pbPercentile: pbMap.get(d) ?? null,
+        })));
+      }
+    } catch {
+      // History is optional and should not hide an otherwise valid report.
+    }
   }, []);
 
   useEffect(() => {
-    fetchReport();
-    fetchHistory();
+    // Data fetching is intentionally started after mount and cleaned up below.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchReport();
+    void fetchHistory();
     const timer = setInterval(fetchReport, POLL_MS);
     return () => {
       clearInterval(timer);
       abortRef.current?.abort();
+      historyAbortRef.current?.abort();
     };
   }, [fetchReport, fetchHistory]);
 
-  const dash = emptyDashboardData();
-  if (report) Object.assign(dash, transformReport(report));
-  dash.report = report;
-  dash.loading = loading;
-  dash.error = error;
-  dash.refetch = fetchReport;
-  dash.valuationHistory = history;
-  dash.activityLog = activityLog;
-
-  return dash;
+  return useMemo(() => ({
+    ...emptyDashboardData(),
+    ...(report ? transformReport(report) : {}),
+    report,
+    loading,
+    error,
+    refetch: fetchReport,
+    valuationHistory: history,
+    activityLog,
+  }), [activityLog, error, fetchReport, history, loading, report]);
 }

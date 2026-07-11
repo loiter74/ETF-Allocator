@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { MonthlyReport, SimulateRequest, SimulateResponse, FetchState } from '../types'
 
 const BASE = '/api'
@@ -9,22 +9,27 @@ export function useReport(date: string): FetchState<MonthlyReport> & { refetch: 
     loading: true,
     error: null,
   })
+  const abortRef = useRef<AbortController | null>(null)
 
   const fetchReport = useCallback(async () => {
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
     setState((s) => ({ ...s, loading: true, error: null }))
     try {
-      const res = await fetch(`${BASE}/report?date=${encodeURIComponent(date)}`)
+      const res = await fetch(`${BASE}/report?date=${encodeURIComponent(date)}`, { signal: controller.signal })
       if (!res.ok) throw new Error(`API error: ${res.status}`)
       const json: MonthlyReport = await res.json()
-      setState({ data: json, loading: false, error: null })
+      if (!controller.signal.aborted) setState({ data: json, loading: false, error: null })
     } catch (err) {
-      setState({ data: null, loading: false, error: (err as Error).message })
+      if (!controller.signal.aborted) setState({ data: null, loading: false, error: (err as Error).message })
     }
   }, [date])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchReport()
+    void fetchReport()
+    return () => abortRef.current?.abort()
   }, [fetchReport])
 
   return { ...state, refetch: fetchReport }
@@ -36,22 +41,29 @@ export function useSimulate() {
     loading: false,
     error: null,
   })
+  const abortRef = useRef<AbortController | null>(null)
 
-  const simulate = async (body: SimulateRequest) => {
+  const simulate = useCallback(async (body: SimulateRequest) => {
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
     setState({ data: null, loading: true, error: null })
     try {
       const res = await fetch(`${BASE}/report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
+        signal: controller.signal,
       })
       if (!res.ok) throw new Error(`API error: ${res.status}`)
       const json: SimulateResponse = await res.json()
-      setState({ data: json, loading: false, error: null })
+      if (!controller.signal.aborted) setState({ data: json, loading: false, error: null })
     } catch (err) {
-      setState({ data: null, loading: false, error: (err as Error).message })
+      if (!controller.signal.aborted) setState({ data: null, loading: false, error: (err as Error).message })
     }
-  }
+  }, [])
+
+  useEffect(() => () => abortRef.current?.abort(), [])
 
   return { ...state, simulate }
 }

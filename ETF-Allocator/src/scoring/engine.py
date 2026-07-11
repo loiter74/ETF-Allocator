@@ -29,25 +29,22 @@ def score_baijiu(pe_percentile: Optional[float]) -> Optional[float]:
 
 
 def score_bank(
-    pb_pct: Optional[float],
-    dividend_pct: Optional[float],
+    pb_zscore: Optional[float],
+    dividend_zscore: Optional[float],
 ) -> Optional[float]:
     """
-    银行：sigmoid(0.5 * PB分位评分 + 0.5 * 股息分位评分)
+    银行：sigmoid(0.5 * PB_zscore + 0.5 * 股息_zscore)
 
     ds.v1.2 §五·银行：
-      用分位值代替 z-score（因子层当前只输出分位）：
-        PB 分位越低 → PB 越便宜 → 机会越好 → 评分越高
-        股息分位越高 → 股息越高 → 机会越好 → 评分越高
-      复合评分 = 0.5 * (1 - PB分位) + 0.5 * 股息分位
+      复合 z-score = 配置权重加权的两个标准分。
     """
-    if pb_pct is None or dividend_pct is None:
+    if pb_zscore is None or dividend_zscore is None:
         return None
 
     weights = FACTOR_WEIGHTS["银行ETF"]
     composite = (
-        weights["pb_percentile"] * (1.0 - pb_pct)   # PB 便宜时高分
-        + weights["dividend_percentile"] * dividend_pct  # 股息高时高分
+        weights["pb_percentile"] * pb_zscore
+        + weights["dividend_percentile"] * dividend_zscore
     )
 
     return sigmoid(composite)
@@ -102,8 +99,8 @@ def score_all(factors: Dict[str, Dict[str, Optional[float]]]) -> Dict[str, Optio
 
         elif asset_name == "银行ETF":
             scores[asset_name] = score_bank(
-                asset_factors.get("pb_percentile"),
-                asset_factors.get("dividend_percentile"),
+                asset_factors.get("pb_zscore"),
+                asset_factors.get("dividend_zscore"),
             )
 
         elif asset_name == "红利ETF":

@@ -1,4 +1,4 @@
-import type { ComponentType } from 'react';
+import type { ElementType } from 'react';
 import { ThermometerWidget } from './ThermometerWidget';
 import { AllocationCardsWidget } from './AllocationCardsWidget';
 import { EquityRingWidget } from './EquityRingWidget';
@@ -9,7 +9,7 @@ import { ActivityLogWidget } from './ActivityLogWidget';
 
 export interface WidgetMeta {
   id: string;
-  component: ComponentType<any>;
+  component: ElementType;
   title: string;
   defaultSize: { w: number; h: number };
   minSize: { w: number; h: number };
