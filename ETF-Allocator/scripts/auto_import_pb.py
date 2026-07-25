@@ -7,11 +7,14 @@ Tushare 免费版 index_dailybasic 限频 1次/小时。
 
 双击 auto_import_pb.bat 启动，保持窗口开着即可。
 """
+import os
 import sqlite3, time, tushare as ts, sys
 from datetime import datetime
 from pathlib import Path
 
-TOKEN = 'REDACTED_TUSHARE_TOKEN'
+TOKEN = os.environ.get('TUSHARE_TOKEN')
+if not TOKEN:
+    sys.exit('错误：未设置 TUSHARE_TOKEN 环境变量。请到 Tushare Pro 个人主页获取后重试。')
 DB = Path(__file__).resolve().parent.parent / 'data' / 'db' / 'etf_data.db'
 
 INDICES = [

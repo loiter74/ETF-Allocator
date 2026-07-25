@@ -31,7 +31,10 @@ import tushare as ts
 from config.settings import ASSETS
 
 # ── 配置 ──
-TOKEN = 'REDACTED_TUSHARE_TOKEN'
+# Tushare token 从环境变量读取（避免密钥入库）；缺失时报错退出。
+TOKEN = os.environ.get('TUSHARE_TOKEN')
+if not TOKEN:
+    sys.exit('错误：未设置 TUSHARE_TOKEN 环境变量。请到 Tushare Pro 个人主页获取后重试。')
 DB_PATH = PROJECT_ROOT / 'data' / 'db' / 'etf_data.db'
 
 os.environ['NO_PROXY'] = '*'

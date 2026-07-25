@@ -7,11 +7,14 @@ Total runtime: ~4.5 hours for all 4 indices.
 
 Usage: python scripts/import_pb_all.py
 """
+import os
 import tushare as ts, time, sqlite3, sys
 from datetime import datetime
 from pathlib import Path
 
-TOKEN = 'REDACTED_TUSHARE_TOKEN'
+TOKEN = os.environ.get('TUSHARE_TOKEN')
+if not TOKEN:
+    sys.exit('错误：未设置 TUSHARE_TOKEN 环境变量。请到 Tushare Pro 个人主页获取后重试。')
 DB = Path(__file__).resolve().parent.parent / 'data' / 'db' / 'etf_data.db'
 
 WAIT_SECONDS = 3900  # 65 minutes between requests (safe margin over 1 hour)

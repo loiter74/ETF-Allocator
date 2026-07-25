@@ -1,13 +1,16 @@
 """
 scripts/import_pb.py — 用 Tushare 拉取行业指数 PE+PB 数据。
 
-需先设置 token: 已内置
-运行: python scripts/import_pb.py
+需先设置环境变量 TUSHARE_TOKEN（Tushare Pro 个人主页可获取）。
+运行: set TUSHARE_TOKEN=xxx && python scripts/import_pb.py
 """
+import os
 import tushare as ts, time, sqlite3, sys
 from pathlib import Path
 
-TOKEN = 'REDACTED_TUSHARE_TOKEN'
+TOKEN = os.environ.get('TUSHARE_TOKEN')
+if not TOKEN:
+    sys.exit('错误：未设置 TUSHARE_TOKEN 环境变量。请到 Tushare Pro 个人主页获取后重试。')
 DB = Path(__file__).resolve().parent.parent / 'data' / 'db' / 'etf_data.db'
 
 ts.set_token(TOKEN)
