@@ -7,19 +7,23 @@ reports/monthly.py — 月度配置报告生成器。
 from datetime import date
 from typing import Optional
 
+from config.settings import TEMP_THRESHOLDS
+
 
 def _fmt_amount(amount: float) -> str:
     """格式化金额，添加千分位逗号。"""
     return f"{amount:,.0f}"
 
 
+# 温度计 4 档人类可读标签，阈值来自 settings.TEMP_THRESHOLDS（audit C1）。
+# TEMP_THRESHOLDS 形如 [0.60, 0.80, 0.90]，对应 4 档：正常 / 中等偏高 / 高温 / 过热。
 def _temperature_label(temp: float) -> str:
     """温度计分位 → 人类可读标签（4档分级）。"""
-    if temp > 0.90:
+    if temp > TEMP_THRESHOLDS[2]:          # > 0.90
         return "过热（>90%）"
-    elif temp >= 0.80:
+    elif temp >= TEMP_THRESHOLDS[1]:       # 80-90%
         return "高温（80-90%）"
-    elif temp >= 0.60:
+    elif temp >= TEMP_THRESHOLDS[0]:       # 60-80%
         return "中等偏高（60-80%）"
     return "正常（<60%）"
 

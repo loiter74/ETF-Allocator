@@ -40,6 +40,8 @@ from config.settings import (
     KECHUANG_TREND_OFF_MULTIPLIER,
     DEFAULT_NEW_MONEY,
     DEFAULT_TOTAL_ASSETS,
+    TEMP_THRESHOLDS,
+    TEMP_EQUITY_RATIOS,
 )
 from src.store.schema import create_tables
 from src.datasource.akshare_adapter import fetch_etf_price, fetch_index_valuation
@@ -48,7 +50,12 @@ from src.factors.dividend import dividend_yield_percentile
 from src.factors.momentum import momentum_120d, ma_trend_200d
 from src.factors.risk import annualized_volatility
 from src.scoring.engine import score_all
-from src.regime.thermometer import equity_ratio, load_persistence, save_persistence
+from src.regime.thermometer import (
+    equity_ratio,
+    load_persistence,
+    save_persistence,
+    _tier as _temp_tier,
+)
 from src.risk.controller import all_effective_limits, reset_recovery_tracking
 from src.constraints.portfolio import apply_constraints
 from src.allocation.allocator import allocate
@@ -456,20 +463,21 @@ def run_report(verbose: bool = False, demo: bool = False,
     save_persistence(regime_state_path)
     overheated = (
         hs300_pe_pct is not None and all_a_pb_pct is not None
-        and hs300_pe_pct > 0.90 and all_a_pb_pct > 0.90
+        and hs300_pe_pct > TEMP_THRESHOLDS[2] and all_a_pb_pct > TEMP_THRESHOLDS[2]
     )
-    def _temp_tier(value):
-        if value is None:
-            return None
-        if value < 0.60:
-            return 0
-        if value < 0.80:
-            return 1
-        if value < 0.90:
-            return 2
-        return 3
-    frozen = _temp_tier(hs300_pe_pct) != _temp_tier(all_a_pb_pct)
-    labels = {1.0: "正常（双<60%）", 0.7: "中等偏高（双60%-80%）", 0.4: "高温（双80%-90%）", 0.3: "过热（双>90%）"}
+    # 档位判定与权益比例标签都从 settings.TEMP_THRESHOLDS / TEMP_EQUITY_RATIOS 派生
+    # （audit C1：原先 run.py 重复实现了 thermometer._tier 和 label 表）
+    # thermometer._tier 不接受 None；任一缺失时按"非冻结"处理（与原 _temp_tier(None) 行为一致）。
+    if hs300_pe_pct is None or all_a_pb_pct is None:
+        frozen = False
+    else:
+        frozen = _temp_tier(hs300_pe_pct) != _temp_tier(all_a_pb_pct)
+    labels = {
+        TEMP_EQUITY_RATIOS[0]: f"正常（双<{TEMP_THRESHOLDS[0]:.0%}）",
+        TEMP_EQUITY_RATIOS[1]: f"中等偏高（双{TEMP_THRESHOLDS[0]:.0%}-{TEMP_THRESHOLDS[1]:.0%}）",
+        TEMP_EQUITY_RATIOS[2]: f"高温（双{TEMP_THRESHOLDS[1]:.0%}-{TEMP_THRESHOLDS[2]:.0%}）",
+        TEMP_EQUITY_RATIOS[3]: f"过热（双>{TEMP_THRESHOLDS[2]:.0%}）",
+    }
     temp_label = "冻结（双指标档位不一致）" if frozen else labels.get(eq_ratio, "数据不足")
     temp_detail = "维持上一期权益比例" if frozen else f"双指标同档，权益比例 {eq_ratio:.0%}"
 
