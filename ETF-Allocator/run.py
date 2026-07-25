@@ -37,6 +37,7 @@ import pandas as pd
 from config.settings import (
     ASSETS,
     WINDOW_PE_PERCENTILE_YEARS,
+    KECHUANG_TREND_OFF_MULTIPLIER,
 )
 from src.store.schema import create_tables
 from src.datasource.akshare_adapter import fetch_etf_price, fetch_index_valuation
@@ -274,7 +275,7 @@ def calculate_factors(conn: sqlite3.Connection, latest_date: date) -> dict:
                         mom_series, mom_120
                     )
 
-            asset_factors["trend_multiplier"] = 1.0 if trend_on else 0.50
+            asset_factors["trend_multiplier"] = 1.0 if trend_on else KECHUANG_TREND_OFF_MULTIPLIER
 
         # 波动率（所有资产，用于风险层）
         vol = annualized_volatility(price_series)
