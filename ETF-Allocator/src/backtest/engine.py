@@ -237,7 +237,8 @@ def compute_metrics(
 
     # External cash flows have already been removed from monthly_returns.
     # Build a unit NAV so every metric uses the same cashflow-aware series.
-    nav = np.concatenate(([1.0], np.cumprod(1.0 + clean)))
+    # Reuse _nav_from_returns (audit C5: was duplicated inline as cumprod).
+    nav = np.array(_nav_from_returns(list(clean)))
     years = len(clean) / 12.0
     ann_ret = float(nav[-1] ** (1.0 / years) - 1.0) if years > 0 else None
 
