@@ -23,7 +23,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from config.settings import ASSETS, WINDOW_PE_PERCENTILE_YEARS
+from config.settings import (
+    ASSETS,
+    WINDOW_PE_PERCENTILE_YEARS,
+    DEFAULT_NEW_MONEY,
+    DEFAULT_TOTAL_ASSETS,
+)
 from src.store.schema import create_tables
 from src.scoring.engine import score_all
 from src.regime.thermometer import read_persistence, resolve_equity_ratio
@@ -38,8 +43,8 @@ app = FastAPI(title="ETF-Allocator API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 DB_PATH = PROJECT_ROOT / "data" / "db" / "etf_data.db"
-NEW_MONEY_DEFAULT = 8_000
-TOTAL_ASSETS_DEFAULT = 500_000
+NEW_MONEY_DEFAULT = DEFAULT_NEW_MONEY          # 从 settings 统一读取（audit C4）
+TOTAL_ASSETS_DEFAULT = DEFAULT_TOTAL_ASSETS
 REGIME_STATE_PATH = PROJECT_ROOT / "data" / "db" / "regime_state.json"
 BOND_ACCUMULATOR_PATH = PROJECT_ROOT / "data" / "db" / "bond_accumulator.json"
 

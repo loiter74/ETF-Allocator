@@ -38,6 +38,8 @@ from config.settings import (
     ASSETS,
     WINDOW_PE_PERCENTILE_YEARS,
     KECHUANG_TREND_OFF_MULTIPLIER,
+    DEFAULT_NEW_MONEY,
+    DEFAULT_TOTAL_ASSETS,
 )
 from src.store.schema import create_tables
 from src.datasource.akshare_adapter import fetch_etf_price, fetch_index_valuation
@@ -376,8 +378,8 @@ def run_report(verbose: bool = False, demo: bool = False,
                weights_override: dict = None, total_assets_input: float = None) -> None:
     """运行流A完整流程，输出月度报告。"""
     reset_recovery_tracking()
-    NEW_MONEY = 8_000
-    DEFAULT_TOTAL = 500_000
+    NEW_MONEY = DEFAULT_NEW_MONEY
+    DEFAULT_TOTAL = DEFAULT_TOTAL_ASSETS
 
     print("[INFO] ETF-Allocator 流A — 月度配置报告")
     print()
