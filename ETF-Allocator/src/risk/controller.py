@@ -7,13 +7,13 @@ risk/controller.py — 风险控制层。
 """
 from typing import Optional, Dict
 
-from config.settings import RISK_CONTROL
+from config.settings import RISK_CONTROL, RISK_RECOVERY_DAYS
 
 # 持久化：记录每个资产连续低于阈值的交易日数
 # 用于实现"波动率回落后持续 N 天，才恢复正常上限"
-# 初始值 = RECOVERY_DAYS，表示假设此前一直处于常态（首次运行不惩罚）
+# 初始值 = RISK_RECOVERY_DAYS，表示假设此前一直处于常态（首次运行不惩罚）
 _low_vol_days: Dict[str, int] = {}
-_RECOVERY_DAYS = 20
+_RECOVERY_DAYS = RISK_RECOVERY_DAYS
 
 
 def effective_upper_limit(
