@@ -223,8 +223,14 @@ def test_run_py_does_not_hardcode_tier_thresholds():
 
 def test_no_hardcoded_tushare_token_in_scripts():
     """
-    P0-1 守护：scripts/ 下任何脚本都不应再包含已泄露的 Tushare token 字面量。
+    P0-1 守护：scripts/ 下任何脚本都不应再包含硬编码的 Tushare token。
     防止未来又被粘回去。
+
+    历史背景：项目早期曾把真实 token 硬编码在 5 个脚本里并进入 git 历史。
+    后用 git-filter-repo 将历史中的 token 替换为下面的占位符 REDACTED_TUSHARE_TOKEN。
+    此处检测该占位符，等价于检测「任何形式的硬编码 token 字面量」——
+    因为合法的 token 必须从 .env / 环境变量读（见 config/secrets.py），
+    脚本里出现 REDACTED_TUSHARE_TOKEN 或任何疑似 token 都说明逻辑被破坏。
     """
     from pathlib import Path
 
@@ -234,7 +240,7 @@ def test_no_hardcoded_tushare_token_in_scripts():
     for py in scripts_dir.glob("*.py"):
         if leaked in py.read_text(encoding="utf-8"):
             offenders.append(py.name)
-    assert not offenders, f"以下脚本仍含硬编码 Tushare token: {offenders}"
+    assert not offenders, f"以下脚本仍含硬编码 Tushare token 占位符: {offenders}"
 
 
 def test_tushare_scripts_read_token_from_env():
