@@ -245,7 +245,12 @@ def test_no_hardcoded_tushare_token_in_scripts():
 
 def test_tushare_scripts_read_token_from_env():
     """
-    P0-1 守护：scripts/ 下所有 .py 必须从 TUSHARE_TOKEN 环境变量读取 token。
+    P0-1 守护：scripts/ 下所有用到 tushare 的脚本，必须通过统一入口读 token，
+    不能直接 os.environ.get('TUSHARE_TOKEN') 或硬编码。
+
+    v1.3 重构后统一走 config.secrets.get_tushare_token()（支持 .env + 环境变量），
+    所以这里检测脚本要么导入 get_tushare_token，要么至少出现 TUSHARE_TOKEN 字样
+    （向后兼容旧写法），但严禁硬编码字面量 token（由上一个测试守护）。
     """
     from pathlib import Path
 
@@ -257,4 +262,5 @@ def test_tushare_scripts_read_token_from_env():
     assert tushare_scripts, "未找到任何 tushare 脚本，测试前提不成立"
     for py in tushare_scripts:
         src = py.read_text(encoding="utf-8")
-        assert "TUSHARE_TOKEN" in src, f"{py.name} 未从 TUSHARE_TOKEN 环境变量读取"
+        ok = "get_tushare_token" in src or "TUSHARE_TOKEN" in src
+        assert ok, f"{py.name} 未通过 get_tushare_token 或 TUSHARE_TOKEN 读取 token"
