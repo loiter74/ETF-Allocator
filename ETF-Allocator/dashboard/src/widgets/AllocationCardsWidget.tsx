@@ -24,13 +24,19 @@ function scoreColor(s: number | null): string {
 
 /** 国债累积池进度条 */
 function BondProgressCard({ status }: { status: BondStatus }) {
-  const progress = Math.min(status.balance / status.min_purchase, 1);
+  // 真实余额（持久化文件里的实际值），balance 是模拟存入后的预演值
+  const realBalance = status.current_balance ?? status.balance;
+  const realInterest = status.current_total_interest ?? status.total_interest;
+  const progress = Math.min(realBalance / status.min_purchase, 1);
   const progressPct = Math.round(progress * 100);
   // 预计还需几个月（按本月存入金额估算）
-  const remaining = Math.max(0, status.min_purchase - status.balance);
+  const remaining = Math.max(0, status.min_purchase - realBalance);
   const monthsLeft = status.deposit_this_month > 0
     ? Math.ceil(remaining / status.deposit_this_month)
     : null;
+  // 预演：本月存入后的余额（模拟值，可能与真实值不同）
+  const projected = status.balance;
+  const hasProjection = status.current_balance != null && Math.round(projected) !== Math.round(realBalance);
 
   return (
     <motion.div
@@ -43,10 +49,10 @@ function BondProgressCard({ status }: { status: BondStatus }) {
       <span className="text-xs font-bold text-amber-700">国债（累积中）</span>
       <span className="text-[10px] text-[#9CA3AF]">(511010)</span>
 
-      {/* 进度条 */}
+      {/* 进度条（基于真实余额） */}
       <div className="w-full px-1">
         <div className="flex justify-between text-[10px] text-amber-600 mb-0.5">
-          <span>¥{Math.round(status.balance).toLocaleString()}</span>
+          <span>¥{Math.round(realBalance).toLocaleString()}</span>
           <span>¥{Math.round(status.min_purchase).toLocaleString()}</span>
         </div>
         <div className="w-full h-2 bg-amber-100 rounded-full overflow-hidden">
@@ -58,14 +64,14 @@ function BondProgressCard({ status }: { status: BondStatus }) {
           />
         </div>
         <div className="text-[10px] text-amber-600 mt-0.5">
-          {progressPct}% · 利息 ¥{status.total_interest.toFixed(1)}
+          {progressPct}% · 利息 ¥{realInterest.toFixed(1)}
         </div>
       </div>
 
-      {/* 状态标签 */}
-      {status.can_buy ? (
+      {/* 状态标签（基于真实余额判断） */}
+      {realBalance >= status.min_purchase ? (
         <span className="text-[10px] font-medium text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
-          ✓ 可购买 {status.lots_available} 手
+          ✓ 可购买 {Math.floor(realBalance / status.min_purchase)} 手
         </span>
       ) : (
         <span className="text-[10px] text-amber-500">
@@ -73,10 +79,13 @@ function BondProgressCard({ status }: { status: BondStatus }) {
         </span>
       )}
 
-      {/* 本月存入 */}
+      {/* 本月存入 + 存入后预演 */}
       {status.deposit_this_month > 0 && (
         <span className="text-[9px] text-[#9CA3AF]">
           本月存入 ¥{Math.round(status.deposit_this_month).toLocaleString()}
+          {hasProjection && (
+            <span className="text-amber-600"> → 存入后 ¥{Math.round(projected).toLocaleString()}</span>
+          )}
         </span>
       )}
     </motion.div>

@@ -35,7 +35,7 @@ export interface AllocationSummary {
 
 /** 国债累积池状态（BondAccumulator 输出） */
 export interface BondStatus {
-  balance: number;             // 累积池当前余额
+  balance: number;             // 累积池当前余额（模拟存入后；预演值）
   min_purchase: number;        // 最低买入门槛 (14,000)
   total_interest: number;      // 累计逆回购利息
   can_buy: boolean;            // 本月是否可触发购买
@@ -45,6 +45,9 @@ export interface BondStatus {
   action_buy: boolean;         // 本月实际是否执行了购买
   action_lots: number;         // 本月购买手数
   action_amount: number;       // 本月购买金额
+  // 真实状态（未模拟，来自持久化文件）—— 面板同时展示真实 + 预演
+  current_balance?: number;      // 真实累积池余额
+  current_total_interest?: number; // 真实累计利息
 }
 
 export interface MonthlyReport {

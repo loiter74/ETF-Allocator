@@ -292,11 +292,18 @@ def get_report(
     alloc = allocate(scores, weights, limits, total, NEW_MONEY_DEFAULT * eq_ratio, cons["buy_coefficients"])
 
     # v1.3: bond accumulator
+    # GET 同时返回两套数字，让面板一眼看清「真实攒了多少」+「本月存入后预演」：
+    #   - current_balance / current_* ：持久化文件里的真实状态（未模拟）
+    #   - balance / action_* 等（原有字段）：模拟 deposit+accrue+execute 后的预演值
+    # 两套都只读，不 save。真实推进只发生在 run.py report（流A）里。
     bond_budget = NEW_MONEY_DEFAULT * bond_ratio
     bond_alloc_overflow = alloc.pop("国债ETF", 0)
     total_bond_deposit = bond_budget + bond_alloc_overflow
     accumulator_path = str(BOND_ACCUMULATOR_PATH)
     bond_accumulator = BondAccumulator.load(accumulator_path)
+    # 捕获真实状态（load 后、模拟前）
+    real_status = bond_accumulator.get_status()
+    # 模拟本月存入 + 计息 + 可能的买入
     bond_accumulator.deposit(total_bond_deposit)
     bond_interest = bond_accumulator.accrue_interest()
     bond_action = bond_accumulator.execute()
@@ -308,6 +315,9 @@ def get_report(
     bond_status["action_buy"] = bond_action.buy
     bond_status["action_lots"] = bond_action.lots
     bond_status["action_amount"] = bond_action.amount
+    # 追加真实状态字段（前端用来显示「当前真实余额」）
+    bond_status["current_balance"] = real_status["balance"]
+    bond_status["current_total_interest"] = real_status["total_interest"]
     # Read-only projection: report requests never persist accumulator changes.
 
     conn.close()
@@ -412,10 +422,10 @@ def get_report(
         # 红利 ETF 单因子背离检查：股息率极端低估 vs 市场 PE 高估
         "_divergence_check": True,  # 标记前端可展开详情
         "_divergence_note": (
-            f'红利ETF仅用股息率分位({int(factors.get("红利ETF", {}).get("dividend_percentile", 0) * 100)}分)，'
+            f'红利ETF仅用股息率分位({int((factors.get("红利ETF", {}).get("dividend_percentile") or 0) * 100)}分)，'
             f'未纳入PE/PB价格估值。当前市场PE分位{int(p1 * 100) if p1 else "?"}%处于高位，'
             '单因子"极端低估"需结合价格估值综合判断。'
-        ) if factors.get("红利ETF", {}).get("dividend_percentile", 0) > 0.85 and (p1 or 0) > 0.6 else "",
+        ) if (factors.get("红利ETF", {}).get("dividend_percentile") or 0) > 0.85 and (p1 or 0) > 0.6 else "",
         # 分配占比摘要（供前端画饼图/柱状图）
         "allocation_summary": [
             {
