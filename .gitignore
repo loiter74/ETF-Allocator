@@ -47,4 +47,6 @@ ETF-Allocator/dashboard/dist/
 .env
 *.local
 secrets.*
+# 例外：config/secrets.py 是 .env 加载模块（不含密钥本身），必须入库
+!ETF-Allocator/config/secrets.py
 nul

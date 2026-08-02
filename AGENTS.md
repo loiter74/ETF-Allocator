@@ -4,9 +4,11 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 ## Project Overview
 
-ETF 月度新增资金配置系统（v1.2）。每月回答一个问题：新钱怎么分到 6 个 ETF / 国债。不预测涨跌，不卖已有仓位。每个决策可追溯到因子值和规则。
+ETF 月度新增资金配置系统（v1.3）。每月回答一个问题：新钱怎么分到 6 个 ETF / 国债。不预测涨跌，不卖已有仓位。每个决策可追溯到因子值和规则。
 
 核心代码在 `ETF-Allocator/` 子目录下。
+
+> 权威架构地图见 `docs/architecture-current.md`（审计日期 2026-07-25，对应 v1.3 现状，含 execution 模块）；设计哲学与硬性约束见根目录 `README.md`。改架构前先读这两份。
 
 ## Commands
 
@@ -42,7 +44,7 @@ python ETF-Allocator/scripts/import_pb_all.py        # PB 数据
 ## Architecture: Two Independent Flows
 
 **流A（运行流）** — `run.py report`，每月执行：
-数据更新 → 因子计算 → 机会分评分 → 市场温度计 → 风险控制 → 组合约束 → 资金分配 → 月报
+数据更新 → 因子计算 → 机会分评分 → 市场温度计 → 风险控制 → 组合约束 → 资金分配 → **国债虚拟累积池（execution/BondAccumulator，攒够门槛才实买）** → 月报
 
 **流B（验证流）** — `validate.py`，离线定期跑：
 训练期调参 → 锁死 → 测试期只验 → 指标（年化/最大回撤/夏普/Calmar）
@@ -59,6 +61,7 @@ python ETF-Allocator/scripts/import_pb_all.py        # PB 数据
 | `risk/` | 波动率 → 仓位上限调整 | `controller.py` |
 | `constraints/` | 单资产 + 因子组约束 | `portfolio.py` |
 | `allocation/` | 资金分配（缺口分+机会分混合） | `allocator.py` |
+| `execution/` | 国债虚拟累积池（v1.3 新增，解决 511010 最低买入门槛） | `bond_liquidity.py` |
 | `backtest/` | point-in-time 回测引擎 | `engine.py`, `splitter.py` |
 | `reports/` | 月报文本生成 | `monthly.py` |
 | `rebalance/` | 年度再平衡检查 | `checker.py` |
@@ -104,7 +107,7 @@ python ETF-Allocator/scripts/import_pb_all.py        # PB 数据
    ```
    ⚠️ 子 agent 必须持续检查自己是否卡死（超过 60s 无进展 → 报告失败），主 agent 也应定期检查子 agent 状态。
 7. **QA 测试必须重新获取数据**：启动测试步骤时，必须使用 `qa` skill 并结合 `playwright` 技能进行页面捕获和验证。**严禁复用上一次 playwright 的缓存结果**，每次测试前必须重新获取最新测试数据。
-8. **唯一设计文档**：`ds.v1.3.md` 是本项目的唯一设计文档（design spec），所有架构决策、因子公式、评分逻辑、约束规则以该文件为准。任何实现必须可追溯到该文档中的具体章节。
+8. **设计文档权威来源**：设计哲学与硬性约束以根目录 `README.md` 为准（原 `ds.v1.3.md` 已在 commit `0d1e769` 重命名为 `README.md`）；当前架构现状（含 v1.3 execution 模块、模块边界、数据流）以 `docs/architecture-current.md` 为准。任何实现必须可追溯到这两份文档中的具体章节。
 
 ## Design Workflow
 
@@ -119,6 +122,7 @@ python ETF-Allocator/scripts/import_pb_all.py        # PB 数据
 - 国债是"吸收口"：温度计强制债比例 + 分配溢出都进国债
 - 趋势开关 OFF ≠ 归零，减半（乘以 0.50）保留反转参与权
 - 全局状态模块变量（温度计持久化 `_last_equity_ratio`、波动率恢复 `_low_vol_days`）：测试后需 `reset_persistence()` / `reset_recovery_tracking()`
+- 国债虚拟累积池（`execution/BondAccumulator`）跨月状态走 JSON 文件持久化（`save`/`load`，路径在 settings），不是模块变量；测试时直接 new 一个空实例，别误读旧状态文件
 
 ## Frontend
 

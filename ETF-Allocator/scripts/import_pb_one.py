@@ -5,14 +5,16 @@ Usage: python scripts/import_pb_one.py
 Automatically finds indices with zero PB, processes the first one, then exits.
 Re-run every hour until all 4 indices have PB data.
 """
-import os
 import tushare as ts, time, sqlite3, sys
 from pathlib import Path
 
-TOKEN = os.environ.get('TUSHARE_TOKEN')
-if not TOKEN:
-    sys.exit('错误：未设置 TUSHARE_TOKEN 环境变量。请到 Tushare Pro 个人主页获取后重试。')
-DB = Path(__file__).resolve().parent.parent / 'data' / 'db' / 'etf_data.db'
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from config.secrets import get_tushare_token
+
+TOKEN = get_tushare_token()
+DB = PROJECT_ROOT / 'data' / 'db' / 'etf_data.db'
 
 TUSHARE_CODE_MAP = {
     '399997': ('399997.SZ', 'Zhongzheng Baijiu'),

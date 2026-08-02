@@ -33,6 +33,23 @@ scripts/
 - **输出数据库**：`../data/db/etf_data.db`（相对路径）
 - **错误处理**：导入失败不崩，记录日志后继续下一批
 
+## Tushare Token 来源
+
+所有 Tushare 脚本（`import_pb*.py`、`auto_import_pb.py`、`tushare_import.py`）通过统一入口取 token：
+
+```python
+from config.secrets import get_tushare_token
+TOKEN = get_tushare_token()   # 缺失时直接 sys.exit 报中文错
+```
+
+优先级（高 → 低）：
+1. 进程环境变量 `TUSHARE_TOKEN`（`set TUSHARE_TOKEN=xxx` 临时设置，**优先级最高**，CI/一次性场景）
+2. `ETF-Allocator/.env` 文件中的 `TUSHARE_TOKEN=...`（本地开发常用，复制 `.env.example` 改）
+
+`.env` 已被根 `.gitignore` 忽略，不会入库；`.env.example` 是模板，可以入库。`config/secrets.py` 是加载逻辑本身（不含密钥），也入库。
+
+**不要**在脚本里重新写 `os.environ.get('TUSHARE_TOKEN')` —— 会绕过 `.env` 支持且制造重复逻辑。新增 Tushare 脚本时直接调 `get_tushare_token()`。
+
 ## ANTI-PATTERNS
 
 - **不要**跳过 `publish_date` 字段 — 回测依赖它防未来函数
