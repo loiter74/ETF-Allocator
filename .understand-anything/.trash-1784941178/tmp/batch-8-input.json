@@ -1,0 +1,57 @@
+{
+  "batchIndex": 8,
+  "files": [
+    {
+      "path": "ETF-Allocator/dashboard/AGENTS.md",
+      "language": "markdown",
+      "sizeLines": 89,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "ETF-Allocator/dashboard/README.md",
+      "language": "markdown",
+      "sizeLines": 73,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "ETF-Allocator/dashboard/components.json",
+      "language": "json",
+      "sizeLines": 21,
+      "fileCategory": "config"
+    },
+    {
+      "path": "ETF-Allocator/dashboard/package.json",
+      "language": "json",
+      "sizeLines": 48,
+      "fileCategory": "config"
+    },
+    {
+      "path": "ETF-Allocator/dashboard/tsconfig.app.json",
+      "language": "json",
+      "sizeLines": 38,
+      "fileCategory": "config"
+    },
+    {
+      "path": "ETF-Allocator/dashboard/tsconfig.json",
+      "language": "json",
+      "sizeLines": 7,
+      "fileCategory": "config"
+    },
+    {
+      "path": "ETF-Allocator/dashboard/tsconfig.node.json",
+      "language": "json",
+      "sizeLines": 24,
+      "fileCategory": "config"
+    }
+  ],
+  "batchImportData": {
+    "ETF-Allocator/dashboard/AGENTS.md": [],
+    "ETF-Allocator/dashboard/README.md": [],
+    "ETF-Allocator/dashboard/components.json": [],
+    "ETF-Allocator/dashboard/package.json": [],
+    "ETF-Allocator/dashboard/tsconfig.app.json": [],
+    "ETF-Allocator/dashboard/tsconfig.json": [],
+    "ETF-Allocator/dashboard/tsconfig.node.json": []
+  },
+  "neighborMap": {}
+}

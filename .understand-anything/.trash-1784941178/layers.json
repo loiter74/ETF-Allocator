@@ -1,0 +1,259 @@
+[
+  {
+    "id": "layer:governance-docs",
+    "name": "项目治理与文档",
+    "description": "项目级 agent 指引（AGENTS.md / CLAUDE.md）、设计文档、README 及各子模块 AGENTS.md，承担架构说明与协作纪律治理。",
+    "nodeIds": [
+      "document:AGENTS.md",
+      "document:CLAUDE.md",
+      "document:README.md",
+      "document:ETF-Allocator/AGENTS.md",
+      "document:ETF-Allocator/dashboard/AGENTS.md",
+      "document:ETF-Allocator/dashboard/README.md",
+      "file:ETF-Allocator/data/DATA_IMPORT_LOG.md",
+      "document:ETF-Allocator/src/backtest/AGENTS.md",
+      "document:ETF-Allocator/src/factors/AGENTS.md",
+      "document:ETF-Allocator/tests/AGENTS.md"
+    ]
+  },
+  {
+    "id": "layer:config",
+    "name": "配置与参数中心",
+    "description": "系统单一参数来源 settings.py，以及 pyproject.toml、tsconfig、package.json、Vite 配置、CI 工作流等工程配置文件。",
+    "nodeIds": [
+      "file:ETF-Allocator/config/__init__.py",
+      "file:ETF-Allocator/config/settings.py",
+      "config:ETF-Allocator/pyproject.toml",
+      "config:ETF-Allocator/dashboard/components.json",
+      "config:ETF-Allocator/dashboard/package.json",
+      "config:ETF-Allocator/dashboard/tsconfig.app.json",
+      "config:ETF-Allocator/dashboard/tsconfig.json",
+      "config:ETF-Allocator/dashboard/tsconfig.node.json",
+      "pipeline:ETF-Allocator/.github/workflows/test.yml"
+    ]
+  },
+  {
+    "id": "layer:data-storage",
+    "name": "数据存储层",
+    "description": "SQLite 建表、数据规范化、AntiLookAhead 防未来函数校验，以及全部 table: 物理表节点。",
+    "nodeIds": [
+      "table:ETF-Allocator/scripts/tushare_import.py:index_info",
+      "table:ETF-Allocator/scripts/tushare_import.py:etf_info",
+      "table:ETF-Allocator/scripts/tushare_import.py:index_valuation",
+      "table:ETF-Allocator/scripts/tushare_import.py:etf_price",
+      "file:ETF-Allocator/src/store/normalization.py",
+      "file:ETF-Allocator/src/store/schema.py",
+      "table:ETF-Allocator/src/store/schema.py:index_info",
+      "table:ETF-Allocator/src/store/schema.py:etf_info",
+      "table:ETF-Allocator/src/store/schema.py:index_valuation",
+      "table:ETF-Allocator/src/store/schema.py:etf_price",
+      "table:ETF-Allocator/src/store/schema.py:etf_factor",
+      "table:ETF-Allocator/src/store/schema.py:investment_record",
+      "table:ETF-Allocator/src/store/schema.py:investment_record_item",
+      "file:ETF-Allocator/src/store/validator.py",
+      "file:ETF-Allocator/src/store/__init__.py"
+    ]
+  },
+  {
+    "id": "layer:data-source",
+    "name": "数据源适配层",
+    "description": "AkShare/Tushare 等外部数据源适配器与各类数据导入、迁移脚本（scripts/）。",
+    "nodeIds": [
+      "file:ETF-Allocator/scripts/tushare_import.py",
+      "file:ETF-Allocator/scripts/import_data.py",
+      "file:ETF-Allocator/scripts/migrate_date_contract.py",
+      "file:ETF-Allocator/src/datasource/akshare_adapter.py",
+      "file:ETF-Allocator/scripts/AGENTS.md",
+      "file:ETF-Allocator/scripts/auto_import_pb.bat",
+      "file:ETF-Allocator/scripts/auto_import_pb.py",
+      "file:ETF-Allocator/scripts/import_pb_all.py",
+      "file:ETF-Allocator/scripts/import_pb_one.py",
+      "file:ETF-Allocator/scripts/import_pb.py",
+      "file:ETF-Allocator/src/datasource/__init__.py"
+    ]
+  },
+  {
+    "id": "layer:factors",
+    "name": "因子计算层",
+    "description": "PE/PB 分位、股息率、动量、波动率等 expanding-window 因子计算（src/factors）。",
+    "nodeIds": [
+      "file:ETF-Allocator/src/factors/dividend.py",
+      "file:ETF-Allocator/src/factors/momentum.py",
+      "file:ETF-Allocator/src/factors/risk.py",
+      "file:ETF-Allocator/src/factors/value.py",
+      "file:ETF-Allocator/src/factors/__init__.py"
+    ]
+  },
+  {
+    "id": "layer:scoring-decision",
+    "name": "评分与决策层",
+    "description": "因子到 [0,1] 机会分的评分引擎、市场温度计（regime）、风险控制（risk）、组合约束（constraints）等决策模块。",
+    "nodeIds": [
+      "file:ETF-Allocator/src/risk/controller.py",
+      "file:ETF-Allocator/src/scoring/engine.py",
+      "file:ETF-Allocator/src/constraints/portfolio.py",
+      "file:ETF-Allocator/src/regime/thermometer.py",
+      "file:ETF-Allocator/src/constraints/__init__.py",
+      "file:ETF-Allocator/src/regime/__init__.py",
+      "file:ETF-Allocator/src/risk/__init__.py",
+      "file:ETF-Allocator/src/scoring/__init__.py"
+    ]
+  },
+  {
+    "id": "layer:allocation-reporting",
+    "name": "资金分配与报告层",
+    "description": "资金分配算法（缺口分+机会分）、国债流动性执行层、月报生成与年度再平衡（allocation/execution/reports/rebalance）。",
+    "nodeIds": [
+      "file:ETF-Allocator/src/execution/__init__.py",
+      "file:ETF-Allocator/src/execution/bond_liquidity.py",
+      "file:ETF-Allocator/src/rebalance/checker.py",
+      "file:ETF-Allocator/src/reports/monthly.py",
+      "file:ETF-Allocator/src/allocation/allocator.py",
+      "file:ETF-Allocator/src/allocation/__init__.py",
+      "file:ETF-Allocator/src/rebalance/__init__.py",
+      "file:ETF-Allocator/src/reports/__init__.py"
+    ]
+  },
+  {
+    "id": "layer:backtest",
+    "name": "回测验证层（流B）",
+    "description": "point-in-time 回测引擎、训练/测试切分、参数锁死与流B入口 validate.py。",
+    "nodeIds": [
+      "file:ETF-Allocator/src/backtest/engine.py",
+      "file:ETF-Allocator/src/backtest/parameter_lock.py",
+      "file:ETF-Allocator/src/backtest/splitter.py",
+      "file:ETF-Allocator/validate.py",
+      "file:ETF-Allocator/src/backtest/__init__.py"
+    ]
+  },
+  {
+    "id": "layer:run-api",
+    "name": "运行流入口与服务层",
+    "description": "流A入口 run.py、FastAPI 后端 server.py、全部 endpoint: 节点、一键启动脚本 start.bat/start.py。",
+    "nodeIds": [
+      "file:ETF-Allocator/run.py",
+      "file:ETF-Allocator/src/api/__init__.py",
+      "file:ETF-Allocator/src/api/server.py",
+      "endpoint:ETF-Allocator/src/api/server.py:GET_api_report",
+      "endpoint:ETF-Allocator/src/api/server.py:POST_api_report",
+      "endpoint:ETF-Allocator/src/api/server.py:GET_api_history",
+      "endpoint:ETF-Allocator/src/api/server.py:GET_api_investments",
+      "endpoint:ETF-Allocator/src/api/server.py:POST_api_investments",
+      "endpoint:ETF-Allocator/src/api/server.py:DELETE_api_investments",
+      "endpoint:ETF-Allocator/src/api/server.py:GET_spa_fallback",
+      "file:ETF-Allocator/start.bat",
+      "file:ETF-Allocator/src/__init__.py",
+      "file:ETF-Allocator/start.py"
+    ]
+  },
+  {
+    "id": "layer:dashboard",
+    "name": "前端展示层",
+    "description": "React 19 + Vite 前端：页面、组件、widgets、hooks、contexts、design-system、类型与工具，以及 dashboard 下的 E2E 测试。",
+    "nodeIds": [
+      "file:ETF-Allocator/dashboard/src/App.tsx",
+      "file:ETF-Allocator/dashboard/src/main.tsx",
+      "file:ETF-Allocator/dashboard/src/types.ts",
+      "file:ETF-Allocator/dashboard/src/lib/utils.ts",
+      "file:ETF-Allocator/dashboard/src/components/ExportPanel.tsx",
+      "file:ETF-Allocator/dashboard/src/components/Formula.tsx",
+      "file:ETF-Allocator/dashboard/src/components/GlassCard.tsx",
+      "file:ETF-Allocator/dashboard/src/components/InfoTip.tsx",
+      "file:ETF-Allocator/dashboard/src/components/NavBar.tsx",
+      "file:ETF-Allocator/dashboard/src/components/ProgressBar.tsx",
+      "file:ETF-Allocator/dashboard/src/components/Skeleton.tsx",
+      "file:ETF-Allocator/dashboard/src/components/frontend-bugs.test.tsx",
+      "file:ETF-Allocator/dashboard/src/components/layout/GridDashboard.tsx",
+      "file:ETF-Allocator/dashboard/src/hooks/useDashboardData.ts",
+      "file:ETF-Allocator/dashboard/src/hooks/useHistory.ts",
+      "file:ETF-Allocator/dashboard/src/hooks/useInvestmentRecords.ts",
+      "file:ETF-Allocator/dashboard/src/hooks/useReport.ts",
+      "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx",
+      "file:ETF-Allocator/dashboard/src/pages/InvestmentHistory.tsx",
+      "file:ETF-Allocator/dashboard/src/pages/Trends.tsx",
+      "file:ETF-Allocator/dashboard/src/widgets/ActivityLogWidget.tsx",
+      "file:ETF-Allocator/dashboard/src/widgets/AllocationCardsWidget.tsx",
+      "file:ETF-Allocator/dashboard/src/widgets/EquityRingWidget.tsx",
+      "file:ETF-Allocator/dashboard/src/widgets/FactorRadarWidget.tsx",
+      "file:ETF-Allocator/dashboard/src/widgets/RiskBarWidget.tsx",
+      "file:ETF-Allocator/dashboard/src/widgets/ThermometerWidget.tsx",
+      "file:ETF-Allocator/dashboard/src/widgets/ValuationChartWidget.tsx",
+      "file:ETF-Allocator/dashboard/src/widgets/registry.ts",
+      "file:ETF-Allocator/dashboard/src/widgets/utils.ts",
+      "file:ETF-Allocator/dashboard/src/widgets/utils.test.ts",
+      "file:ETF-Allocator/dashboard/src/components/layout/ThemeSwitcher.tsx",
+      "file:ETF-Allocator/dashboard/src/contexts/ThemeContext.tsx",
+      "file:ETF-Allocator/dashboard/src/contexts/theme-context.ts",
+      "file:ETF-Allocator/dashboard/src/contexts/useTheme.ts",
+      "file:ETF-Allocator/dashboard/src/design-system/theme.ts",
+      "file:ETF-Allocator/dashboard/e2e/test_dashboard.py",
+      "file:ETF-Allocator/dashboard/e2e/test_regressions.py",
+      "file:ETF-Allocator/dashboard/e2e/test_v2.py",
+      "file:ETF-Allocator/dashboard/e2e/test_v3.py",
+      "file:ETF-Allocator/dashboard/e2e/test_v4.py",
+      "file:ETF-Allocator/dashboard/eslint.config.js",
+      "file:ETF-Allocator/dashboard/public/manifest.json",
+      "file:ETF-Allocator/dashboard/src/components/layout/GlassPane.tsx",
+      "file:ETF-Allocator/dashboard/src/components/layout/RippleBackground.tsx",
+      "file:ETF-Allocator/dashboard/src/hooks/useDashboardData.test.ts",
+      "file:ETF-Allocator/dashboard/src/index.css",
+      "file:ETF-Allocator/dashboard/src/pages/_archive/Dashboard.tsx",
+      "file:ETF-Allocator/dashboard/src/test-setup.ts",
+      "file:ETF-Allocator/dashboard/vite.config.ts",
+      "file:ETF-Allocator/dashboard/vitest.config.ts"
+    ]
+  },
+  {
+    "id": "layer:tests",
+    "name": "测试层",
+    "description": "tests/ 下的 Python 单元测试、集成测试、夹具与 conftest（不含 dashboard 前端测试）。",
+    "nodeIds": [
+      "file:ETF-Allocator/tests/integration/test_backtest_pipeline.py",
+      "file:ETF-Allocator/tests/integration/test_formulas.py",
+      "file:ETF-Allocator/tests/unit/test_bond_liquidity.py",
+      "file:ETF-Allocator/tests/unit/test_config.py",
+      "file:ETF-Allocator/tests/unit/test_factors_dividend.py",
+      "file:ETF-Allocator/tests/unit/test_factors_momentum.py",
+      "file:ETF-Allocator/tests/unit/test_factors_risk.py",
+      "file:ETF-Allocator/tests/unit/test_factors_value.py",
+      "file:ETF-Allocator/tests/unit/test_monthly_report.py",
+      "file:ETF-Allocator/tests/unit/test_risk.py",
+      "file:ETF-Allocator/tests/unit/test_scoring.py",
+      "file:ETF-Allocator/tests/integration/test_api_idempotency.py",
+      "file:ETF-Allocator/tests/integration/test_e2e_scenarios.py",
+      "file:ETF-Allocator/tests/unit/test_allocation.py",
+      "file:ETF-Allocator/tests/unit/test_constraints.py",
+      "file:ETF-Allocator/tests/unit/test_investment_records.py",
+      "file:ETF-Allocator/tests/unit/test_regime.py",
+      "file:ETF-Allocator/tests/unit/test_regression.py",
+      "file:ETF-Allocator/tests/unit/test_datasource.py",
+      "file:ETF-Allocator/tests/unit/test_robustness_contract.py",
+      "file:ETF-Allocator/tests/unit/test_store_schema.py",
+      "file:ETF-Allocator/tests/unit/test_store_validator.py",
+      "file:ETF-Allocator/tests/__init__.py",
+      "file:ETF-Allocator/tests/conftest.py",
+      "file:ETF-Allocator/tests/fixtures/data.py",
+      "file:ETF-Allocator/tests/integration/__init__.py",
+      "file:ETF-Allocator/tests/integration/test_api.py",
+      "file:ETF-Allocator/tests/unit/__init__.py",
+      "file:ETF-Allocator/tests/unit/test_factors_bank.py",
+      "file:ETF-Allocator/tests/unit/test_scoring_sigmoid.py"
+    ]
+  },
+  {
+    "id": "layer:concepts",
+    "name": "概念与领域模型",
+    "description": "全部 concept: 领域概念节点（流A/流B、市场温度计、防未来函数、资金分配算法等核心设计概念）。",
+    "nodeIds": [
+      "concept:流A运行流",
+      "concept:流B验证流",
+      "concept:市场温度计",
+      "concept:防未来函数",
+      "concept:风险不进评分",
+      "concept:参数集中",
+      "concept:国债流动性累积池",
+      "concept:资金分配算法",
+      "concept:因子组约束"
+    ]
+  }
+]

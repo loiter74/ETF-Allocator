@@ -1,0 +1,136 @@
+[
+  {
+    "order": 1,
+    "title": "项目概览：设计哲学与两条数据流",
+    "description": "从根级治理文档入手，理解系统要回答的唯一问题——每月新钱如何在 6 个 ETF / 国债之间分配。README 阐述三大难点（时机/组合/心理）与逐层设计；AGENTS.md 给出 12 个 src/ 模块的职责速查与 8 条 Critical Rules。先建立“不预测涨跌、不卖已有仓位、决策可追溯”的心智模型，再深入代码。",
+    "nodeIds": [
+      "document:README.md",
+      "document:AGENTS.md",
+      "document:ETF-Allocator/AGENTS.md"
+    ],
+    "languageLesson": "项目用中文资产名（如 \"白酒ETF\"、\"科创50ETF\"）作为贯穿 config / factors / scoring / allocation 所有模块的字典 key，而非英文标识符。阅读代码时会频繁看到中文 dict key，这是项目刻意的“可追溯”约定。"
+  },
+  {
+    "order": 2,
+    "title": "核心概念：流A运行流 vs 流B验证流",
+    "description": "掌握项目的两条独立数据流。流A（run.py）每月执行一次，只读不改参数；流B（validate.py）离线回测，训练期调参后锁死、测试期只验不调。配套的防未来函数、风险不进评分、参数集中等纪律是后续每个模块的设计前提，先在此处建立全局约束意识。",
+    "nodeIds": [
+      "concept:流A运行流",
+      "concept:流B验证流",
+      "concept:防未来函数",
+      "concept:风险不进评分"
+    ],
+    "languageLesson": "防未来函数的核心实现是 expanding window（扩展窗口）分位：pandas 的 df.expanding().rank(pct=True) 只用“截至当前行”的历史，严禁全历史分位；并配合 _expand_truncate 把窗口截断到最近 N 年（上限 5 年），避免远古数据污染。"
+  },
+  {
+    "order": 3,
+    "title": "参数中心：config/settings.py 作为唯一事实源",
+    "description": "所有可调参数——资产池 ASSETS、因子权重 FACTOR_WEIGHTS、温度计 4 档阈值、风险控制、目标带 TARGET_BANDS、因子组上限 GROUP_CAPS、回测训练/测试区间、国债执行参数——全部集中在这一个文件。流B 在此调参，流A 只读不改。模块内部严禁硬编码阈值。先读它，才能理解后续模块读到的“魔数”从何而来。",
+    "nodeIds": [
+      "file:ETF-Allocator/config/settings.py",
+      "concept:参数集中"
+    ]
+  },
+  {
+    "order": 4,
+    "title": "数据模型与存储：SQLite 表结构与 point-in-time 字段",
+    "description": "schema.py 定义 7 张表的 DDL（全部 IF NOT EXISTS 幂等，SCHEMA_VERSION=3）。重点关注 index_valuation 表的 publish_date 字段——它是防未来函数的物理载体：估值数据用 publish_date≤T 过滤，价格数据因即时可得只用 trade_date≤T。validator.py 负责校验 publish_date 不早于 trade_date 并按决策日 T 切分可见数据。normalization.py 统一日期与股息率格式以防 SQLite 数字亲和错乱。",
+    "nodeIds": [
+      "file:ETF-Allocator/src/store/schema.py",
+      "table:ETF-Allocator/src/store/schema.py:index_valuation",
+      "table:ETF-Allocator/src/store/schema.py:etf_price",
+      "file:ETF-Allocator/src/store/validator.py"
+    ],
+    "languageLesson": "SQLite ON CONFLICT DO UPDATE 实现 upsert（合并写入），保证同一 (code, trade_date) 重复导入时更新而非报错；同时用 amount_cents 整数分存储金额，规避浮点累计误差。"
+  },
+  {
+    "order": 5,
+    "title": "数据源与导入：AkShare 适配器与多源补全脚本",
+    "description": "akshare_adapter.py 封装指数估值、ETF/LOF 后复权价格、指数元信息三类拉取接口，所有估值行自动附加 publish_date=trade_date+1 以满足 point-in-time 要求。tushare_import.py 是一键补全脚本，整合腾讯/AkShare/Tushare 三源，内联建表定义与 schema.py 保持一致，并用限频 sleep 规避 Tushare 免费版 1 次/小时限制。",
+    "nodeIds": [
+      "file:ETF-Allocator/src/datasource/akshare_adapter.py",
+      "file:ETF-Allocator/scripts/tushare_import.py",
+      "file:ETF-Allocator/scripts/import_data.py"
+    ]
+  },
+  {
+    "order": 6,
+    "title": "因子计算层：expanding window 分位与各资产专属因子",
+    "description": "四类因子各负其责：value.py 计算 PE/PB 滚动历史分位与真实 z-score（排除当前值防污染）；dividend.py 算股息率分位（方向与 PE 相反：越高越好）；momentum.py 算科创50 的 120 日动量与 200 日均线趋势开关；risk.py 算波动率与最大回撤（注意：风险因子不进评分）。全部用 expanding window 并从 config 读取窗口长度。",
+    "nodeIds": [
+      "file:ETF-Allocator/src/factors/value.py",
+      "file:ETF-Allocator/src/factors/dividend.py",
+      "file:ETF-Allocator/src/factors/momentum.py",
+      "file:ETF-Allocator/src/factors/risk.py"
+    ],
+    "languageLesson": "expanding_percentile 用 rank/(n-1) 公式而非 rank/n：这样最小值映射到 0、最大值映射到 1，符合 [0,1] 闭区间语义；数据不足（窗口 < 1 年）时返回 None，由下游 scoring/engine.py 跳过该资产。"
+  },
+  {
+    "order": 7,
+    "title": "机会分评分：因子如何融合为统一的 [0,1] 分数",
+    "description": "scoring/engine.py 把异构因子统一映射到 [0,1] 机会分。关键规则：风险不进评分；国债永远返回 None（由分配层单独处理）；每个资产用自己的赚钱逻辑——白酒/沪深300 = 1−PE 分位、红利 = 股息率分位、科创50 = 动量分位×趋势乘子、银行 = sigmoid(0.5×PB_z + 0.5×股息_z)。理解这里就理解了项目“一资产一逻辑”的设计精髓。",
+    "nodeIds": [
+      "file:ETF-Allocator/src/scoring/engine.py",
+      "file:ETF-Allocator/tests/unit/test_scoring.py"
+    ],
+    "languageLesson": "sigmoid 函数 1/(1+e^(-x)) 把无界 z-score 压缩到 (0,1) 开区间，且严格单调递增、关于原点对称（sigmoid(-x)=1-sigmoid(x)）；用于把银行的真实 z-score（排除当前值）映射为可比的机会分。"
+  },
+  {
+    "order": 8,
+    "title": "市场温度计与风险控制：行为风控 AND 逻辑",
+    "description": "thermometer.py 是行为风控层（非择时）：双指标 AND 规则——沪深300 PE 分位 AND 全A PB 分位同时落入同一档（双<60%→100%权益、60-80%→70%、80-90%→40%、≥90%→30%）；两指标不一致时冻结上期比例。controller.py 读波动率输出仓位上限（风险不进评分，只降上限），且波动率回落需持续 20 个交易日才恢复，避免抖动。注意温度计的强制固收溢出全部进国债（吸收口）。",
+    "nodeIds": [
+      "file:ETF-Allocator/src/regime/thermometer.py",
+      "file:ETF-Allocator/src/risk/controller.py",
+      "concept:市场温度计"
+    ],
+    "languageLesson": "温度计与风险控制器都依赖模块级全局状态（_last_equity_ratio、_low_vol_days）跨调用记忆；测试时必须调用 reset_persistence() / reset_recovery_tracking() 清理，conftest.py 用 autouse fixture 自动完成这一步以防测试间污染。"
+  },
+  {
+    "order": 9,
+    "title": "组合约束与资金分配：因子组上限与国债吸收口",
+    "description": "portfolio.py 实现双层约束：单资产带（上下限 + 缓冲带惩罚函数）与因子组带（VALUE ≤ 60%、GROWTH ≤ 15%），输出可买系数 [0,1] 与最大买入金额；因子组超限时在组内等比缩减，溢出进国债。allocator.py 把缺口分（目标下限−当前权重）与机会分按 0.5/0.5 权重融合出综合优先级，在上限内依次切分本月权益预算；权益到顶后的剩余资金与所有溢出最终都进入国债（吸收口）。",
+    "nodeIds": [
+      "file:ETF-Allocator/src/constraints/portfolio.py",
+      "file:ETF-Allocator/src/allocation/allocator.py",
+      "concept:资金分配算法",
+      "concept:因子组约束"
+    ],
+    "languageLesson": "缓冲带惩罚函数是分段线性：权重在 [下限, 上限-5%] 区间 buy_coefficient=1（全买），在 [上限-5%, 上限] 平滑降到 0，超过上限硬关。这种“软约束”避免因边界微小波动导致买入金额反复跳变。"
+  },
+  {
+    "order": 10,
+    "title": "运行流入口：CLI、API 服务与国债执行层",
+    "description": "run.py 是流A 的 CLI 入口（report / rebalance），串联完整管道：连接 SQLite → AkShare 更新 → 因子 → 评分 → 温度计 → 风险 → 约束 → 分配 → 国债累积池 → 月报。server.py 是 FastAPI 后端，把同一套管线暴露为 GET /api/report（月报）与 POST /api/report（自定义持仓模拟）。bond_liquidity.py 实现 v1.3 国债累积池：解决 511010 单次最低买入约 14000 元门槛，每月固收金额入池累积，攒够才触发买入。",
+    "nodeIds": [
+      "file:ETF-Allocator/run.py",
+      "file:ETF-Allocator/src/api/server.py",
+      "endpoint:ETF-Allocator/src/api/server.py:GET_api_report",
+      "file:ETF-Allocator/src/execution/bond_liquidity.py"
+    ],
+    "languageLesson": "FastAPI 端点用 async def + Pydantic 模型声明请求体；GET 与 POST /api/report 共用同一套温度计→风险→约束→分配→国债累积器管线，区别仅在 current_weights 来源——这种“单管线多入口”设计保证流A 与模拟结果永远一致。"
+  },
+  {
+    "order": 11,
+    "title": "回测验证（流B）：point-in-time 回放与参数锁死",
+    "description": "validate.py 是流B 入口（train / test）：训练期跑完整 PIT 回测并 write_snapshot 用 SHA-256 锁定参数，测试期先 verify_snapshot 校验参数未变再回测。engine.py 在历史数据上逐月模拟整条分配管道，每个决策日 T 只看 trade_date≤T 且 publish_date≤T 的数据；期末用现金流调整后的月度收益构建单位 NAV，计算年化收益、最大回撤、Calmar（核心指标）、Sharpe。splitter.py 按日期切训练/测试集。",
+    "nodeIds": [
+      "file:ETF-Allocator/validate.py",
+      "file:ETF-Allocator/src/backtest/engine.py",
+      "file:ETF-Allocator/src/backtest/parameter_lock.py"
+    ],
+    "languageLesson": "参数锁用 hashlib.sha256 把关键参数 JSON 序列化后哈希落盘；测试期重新计算哈希并比对，任何阈值微调都会让哈希不一致而报错——这是“测试期严禁看着回测结果回头改参数”纪律的代码级强制实现。"
+  },
+  {
+    "order": 12,
+    "title": "前端 Dashboard：React widget 网格与 hooks 数据层",
+    "description": "App.tsx 是前端根，用 ThemeProvider + BrowserRouter 包裹三条路由（本月概览 / 历史趋势 / 资金记录）。AiriDashboard.tsx 整合 useDashboardData（轮询 /api/report）与多个 widget（温度计/权益环/分配卡/因子雷达/估值分位/风险条）渲染完整配置视图。useDashboardData.ts 封装轮询、AbortController 防竞态、把 MonthlyReport 转换为 widget 友好结构。registry.ts 集中注册 7 个 widget 元信息供 GridDashboard 拖拽布局消费。",
+    "nodeIds": [
+      "file:ETF-Allocator/dashboard/src/App.tsx",
+      "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx",
+      "file:ETF-Allocator/dashboard/src/hooks/useDashboardData.ts",
+      "file:ETF-Allocator/dashboard/src/widgets/registry.ts"
+    ],
+    "languageLesson": "前端采用自定义 hook 封装数据获取（useDashboardData / useHistory / useInvestmentRecords），统一用 AbortController 取消过期请求防竞态；组件层用 Context + useTheme 模式提供主题（ThemeProvider 持有 theme/mode 状态 → useTheme 消费），是 React 19 + TypeScript 的典型组织方式。"
+  }
+]

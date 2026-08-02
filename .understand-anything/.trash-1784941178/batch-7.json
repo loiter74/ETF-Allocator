@@ -1,0 +1,57 @@
+{
+  "batchIndex": 7,
+  "nodes": [
+    {
+      "id": "document:ETF-Allocator/AGENTS.md",
+      "type": "document",
+      "name": "AGENTS.md",
+      "filePath": "ETF-Allocator/AGENTS.md",
+      "summary": "ETF-Allocator 核心系统（月度新增资金配置 v1.2）的 agent 总指引，是整个子项目的治理中枢。开篇点明核心理念：每月只问“这笔新钱怎么分到 6 个 ETF/国债、该不该全分出去”，每个决策必须可追溯到“哪条数据 + 哪条规则”，不预测涨跌、不择时进出。正文包含五大部分：(1) STRUCTURE 目录树——逐项标注 run.py（流A月度报告入口）、validate.py（流B回测入口）、config/settings.py（唯一参数源）、src/ 下十二个子包（store/datasource/factors/scoring/regime/risk/constraints/allocation/backtest/reports/rebalance/api）、tests/（14 个单元测试）、dashboard/ React 前端、scripts/ 数据导入；(2) WHERE TO LOOK 任务速查表，把“改参数/加新ETF/改分配算法/改温度计/跑月报/跑回测/看表结构”一一映射到具体文件与函数；(3) CONVENTIONS 七条铁律——双流分离、点对点时间 expanding window（上限 5 年、禁全历史分位）、后复权价 close_adj、publish_date 过滤、风险不进评分只降仓位、参数集中于 settings、设计文档 ds.v1.2.winner.md 为唯一规范；(4) ANTI-PATTERNS 与 UNIQUE STYLES，强调中文字符串资产 key、机会分统一 [0,1]、国债恒为 None、温度计双指标 AND 逻辑（沪深300 PE分位 AND 全A PB分位，不一致则冻结）、VALUE 因子组上限 60%、国债作为吸收口；(5) COMMANDS 常用命令、QA 测试约定（必须用子 agent 启动 start.bat、必须用 qa skill、禁复用 playwright 缓存、主 agent 禁启动后端）。该文件是理解整个 ETF-Allocator 架构与约定的首要入口。",
+      "tags": ["governance", "agent-guide", "模块表", "conventions", "架构总览", "ETF-Allocator"],
+      "complexity": "moderate",
+      "language": "markdown"
+    },
+    {
+      "id": "config:ETF-Allocator/pyproject.toml",
+      "type": "config",
+      "name": "pyproject.toml",
+      "filePath": "ETF-Allocator/pyproject.toml",
+      "summary": "ETF-Allocator 子项目的 Python 项目清单（PEP 621 格式）。声明项目名 etf-allocator、版本 0.1.0、描述“ETF 新增资金配置系统 — V1.2”、要求 Python >=3.10。运行依赖：akshare>=1.12.0（A 股行情/估值数据源）、pandas>=2.0、numpy>=1.24、fastapi>=0.100（后端 API）、uvicorn>=0.30（ASGI 服务器）；开发可选依赖 dev：pytest>=8.0、pytest-cov>=5.0。工具配置：pytest 测试路径指向 tests/，并定义 integration（需网络/akshare）与 slow（>1 秒）两个 marker；coverage 统计 src/ 分支覆盖，并通过 exclude_also 排除 __repr__、debug 分支、AssertionError、NotImplementedError、Protocol、abstractmethod 等非业务路径。该文件是安装依赖、跑测试与覆盖率统计的单一事实来源。",
+      "tags": ["config", "manifest", "python", "PEP621", "依赖", "pytest", "coverage"],
+      "complexity": "simple",
+      "language": "toml"
+    },
+    {
+      "id": "file:ETF-Allocator/start.bat",
+      "type": "file",
+      "name": "start.bat",
+      "filePath": "ETF-Allocator/start.bat",
+      "summary": "ETF-Allocator 一键启动批处理脚本（Windows .bat）。执行流程：关闭回显、设置窗口标题、cd 到脚本所在目录（即 ETF-Allocator/），打印横幅提示双服务地址（API http://localhost:8000、Panel http://localhost:5173），随后调用 `python start.py` 并在末尾 `pause` 保持窗口。真正的启动编排逻辑在 start.py 中：先清理 8000/5173 端口占用，再以 uvicorn 启动 `src.api.server:app` 监听 127.0.0.1:8000，等待就绪后在 dashboard/ 目录用 `npm run dev` 启动 Vite 前端于 5173，最后自动打开浏览器。注意：AGENTS.md 反复强调主 agent 不得直接运行此脚本启动后端（会阻塞主进程），必须由子 agent 执行；该脚本仅为人类用户双击使用。",
+      "tags": ["script", "batch", "一键启动", "Windows", "启动器", "API-8000", "Dashboard-5173"],
+      "complexity": "simple",
+      "language": "batch"
+    }
+  ],
+  "edges": [
+    {"source": "document:ETF-Allocator/AGENTS.md", "target": "file:ETF-Allocator/run.py", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/AGENTS.md", "target": "file:ETF-Allocator/validate.py", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/AGENTS.md", "target": "file:ETF-Allocator/config/settings.py", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/AGENTS.md", "target": "file:ETF-Allocator/src/store/schema.py", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/AGENTS.md", "target": "file:ETF-Allocator/src/allocation/allocator.py", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/AGENTS.md", "target": "file:ETF-Allocator/src/regime/thermometer.py", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/AGENTS.md", "target": "file:ETF-Allocator/src/factors/value.py", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/AGENTS.md", "target": "file:ETF-Allocator/scripts/import_data.py", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/AGENTS.md", "target": "file:ETF-Allocator/scripts/import_pb_all.py", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/AGENTS.md", "target": "document:ETF-Allocator/dashboard/AGENTS.md", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/AGENTS.md", "target": "document:ETF-Allocator/scripts/AGENTS.md", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/AGENTS.md", "target": "file:ETF-Allocator/data/db/etf_data.db", "type": "documents", "weight": 0.5},
+
+    {"source": "config:ETF-Allocator/pyproject.toml", "target": "file:ETF-Allocator/run.py", "type": "configures", "weight": 0.6},
+    {"source": "config:ETF-Allocator/pyproject.toml", "target": "file:ETF-Allocator/validate.py", "type": "configures", "weight": 0.6},
+    {"source": "config:ETF-Allocator/pyproject.toml", "target": "file:ETF-Allocator/src/api/server.py", "type": "configures", "weight": 0.6},
+
+    {"source": "file:ETF-Allocator/start.bat", "target": "file:ETF-Allocator/start.py", "type": "triggers", "weight": 0.7},
+    {"source": "file:ETF-Allocator/start.py", "target": "file:ETF-Allocator/src/api/server.py", "type": "deploys", "weight": 0.6},
+    {"source": "file:ETF-Allocator/start.py", "target": "config:ETF-Allocator/dashboard/package.json", "type": "deploys", "weight": 0.6}
+  ]
+}

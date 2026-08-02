@@ -1,0 +1,29 @@
+{
+  "batchIndex": 7,
+  "files": [
+    {
+      "path": "ETF-Allocator/AGENTS.md",
+      "language": "markdown",
+      "sizeLines": 116,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "ETF-Allocator/pyproject.toml",
+      "language": "toml",
+      "sizeLines": 42,
+      "fileCategory": "config"
+    },
+    {
+      "path": "ETF-Allocator/start.bat",
+      "language": "batch",
+      "sizeLines": 13,
+      "fileCategory": "script"
+    }
+  ],
+  "batchImportData": {
+    "ETF-Allocator/AGENTS.md": [],
+    "ETF-Allocator/pyproject.toml": [],
+    "ETF-Allocator/start.bat": []
+  },
+  "neighborMap": {}
+}

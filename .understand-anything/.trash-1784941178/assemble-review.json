@@ -1,0 +1,39 @@
+{
+  "issues": [],
+  "warnings": [],
+  "stats": {
+    "totalNodes": 374,
+    "totalEdges": 803,
+    "nodeTypes": {
+      "file": 129,
+      "function": 164,
+      "class": 37,
+      "config": 7,
+      "table": 11,
+      "endpoint": 7,
+      "document": 9,
+      "concept": 9,
+      "pipeline": 1
+    },
+    "edgeTypes": {
+      "imports": 182,
+      "contains": 201,
+      "routes": 10,
+      "configures": 30,
+      "defines_schema": 13,
+      "depends_on": 19,
+      "calls": 126,
+      "tested_by": 46,
+      "writes_to": 18,
+      "reads_from": 9,
+      "validates": 2,
+      "implements": 1,
+      "related": 17,
+      "documents": 118,
+      "triggers": 7,
+      "deploys": 2,
+      "references": 2
+    },
+    "duplicateEdgeGroups": 0
+  }
+}

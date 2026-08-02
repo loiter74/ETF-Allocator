@@ -1,0 +1,162 @@
+{
+  "batchIndex": 10,
+  "files": [
+    {
+      "path": "ETF-Allocator/src/backtest/__init__.py",
+      "language": "python",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/src/backtest/AGENTS.md",
+      "language": "markdown",
+      "sizeLines": 34,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "ETF-Allocator/src/constraints/__init__.py",
+      "language": "python",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/src/datasource/__init__.py",
+      "language": "python",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/src/factors/__init__.py",
+      "language": "python",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/src/factors/AGENTS.md",
+      "language": "markdown",
+      "sizeLines": 40,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "ETF-Allocator/src/rebalance/__init__.py",
+      "language": "python",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/src/regime/__init__.py",
+      "language": "python",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/src/reports/__init__.py",
+      "language": "python",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/src/risk/__init__.py",
+      "language": "python",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/src/scoring/__init__.py",
+      "language": "python",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/src/store/__init__.py",
+      "language": "python",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/start.py",
+      "language": "python",
+      "sizeLines": 153,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/tests/__init__.py",
+      "language": "python",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/tests/AGENTS.md",
+      "language": "markdown",
+      "sizeLines": 33,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "ETF-Allocator/tests/conftest.py",
+      "language": "python",
+      "sizeLines": 40,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/tests/fixtures/data.py",
+      "language": "python",
+      "sizeLines": 112,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/tests/integration/__init__.py",
+      "language": "python",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/tests/integration/test_api.py",
+      "language": "python",
+      "sizeLines": 174,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/tests/unit/__init__.py",
+      "language": "python",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/tests/unit/test_factors_bank.py",
+      "language": "python",
+      "sizeLines": 42,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/tests/unit/test_scoring_sigmoid.py",
+      "language": "python",
+      "sizeLines": 40,
+      "fileCategory": "code"
+    }
+  ],
+  "batchImportData": {
+    "ETF-Allocator/src/backtest/__init__.py": [],
+    "ETF-Allocator/src/backtest/AGENTS.md": [],
+    "ETF-Allocator/src/constraints/__init__.py": [],
+    "ETF-Allocator/src/datasource/__init__.py": [],
+    "ETF-Allocator/src/factors/__init__.py": [],
+    "ETF-Allocator/src/factors/AGENTS.md": [],
+    "ETF-Allocator/src/rebalance/__init__.py": [],
+    "ETF-Allocator/src/regime/__init__.py": [],
+    "ETF-Allocator/src/reports/__init__.py": [],
+    "ETF-Allocator/src/risk/__init__.py": [],
+    "ETF-Allocator/src/scoring/__init__.py": [],
+    "ETF-Allocator/src/store/__init__.py": [],
+    "ETF-Allocator/start.py": [],
+    "ETF-Allocator/tests/__init__.py": [],
+    "ETF-Allocator/tests/AGENTS.md": [],
+    "ETF-Allocator/tests/conftest.py": [],
+    "ETF-Allocator/tests/fixtures/data.py": [],
+    "ETF-Allocator/tests/integration/__init__.py": [],
+    "ETF-Allocator/tests/integration/test_api.py": [],
+    "ETF-Allocator/tests/unit/__init__.py": [],
+    "ETF-Allocator/tests/unit/test_factors_bank.py": [],
+    "ETF-Allocator/tests/unit/test_scoring_sigmoid.py": []
+  },
+  "neighborMap": {}
+}

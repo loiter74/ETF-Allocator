@@ -1,0 +1,412 @@
+{
+  "batchIndex": 3,
+  "files": [
+    {
+      "path": "ETF-Allocator/src/allocation/allocator.py",
+      "language": "python",
+      "sizeLines": 304,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/src/api/__init__.py",
+      "language": "python",
+      "sizeLines": 0,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/src/api/server.py",
+      "language": "python",
+      "sizeLines": 609,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/src/constraints/portfolio.py",
+      "language": "python",
+      "sizeLines": 190,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/src/regime/thermometer.py",
+      "language": "python",
+      "sizeLines": 146,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/tests/integration/test_api_idempotency.py",
+      "language": "python",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/tests/integration/test_e2e_scenarios.py",
+      "language": "python",
+      "sizeLines": 90,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/tests/unit/test_allocation.py",
+      "language": "python",
+      "sizeLines": 222,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/tests/unit/test_constraints.py",
+      "language": "python",
+      "sizeLines": 214,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/tests/unit/test_investment_records.py",
+      "language": "python",
+      "sizeLines": 152,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/tests/unit/test_regime.py",
+      "language": "python",
+      "sizeLines": 136,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/tests/unit/test_regression.py",
+      "language": "python",
+      "sizeLines": 98,
+      "fileCategory": "code"
+    }
+  ],
+  "batchImportData": {
+    "ETF-Allocator/src/allocation/allocator.py": [
+      "ETF-Allocator/config/settings.py"
+    ],
+    "ETF-Allocator/src/api/__init__.py": [],
+    "ETF-Allocator/src/api/server.py": [
+      "ETF-Allocator/config/settings.py",
+      "ETF-Allocator/src/allocation/allocator.py",
+      "ETF-Allocator/src/constraints/portfolio.py",
+      "ETF-Allocator/src/execution/bond_liquidity.py",
+      "ETF-Allocator/src/regime/thermometer.py",
+      "ETF-Allocator/src/risk/controller.py",
+      "ETF-Allocator/src/scoring/engine.py",
+      "ETF-Allocator/src/store/schema.py"
+    ],
+    "ETF-Allocator/src/constraints/portfolio.py": [
+      "ETF-Allocator/config/settings.py"
+    ],
+    "ETF-Allocator/src/regime/thermometer.py": [
+      "ETF-Allocator/config/settings.py"
+    ],
+    "ETF-Allocator/tests/integration/test_api_idempotency.py": [
+      "ETF-Allocator/src/api/__init__.py",
+      "ETF-Allocator/src/api/server.py"
+    ],
+    "ETF-Allocator/tests/integration/test_e2e_scenarios.py": [
+      "ETF-Allocator/src/allocation/allocator.py",
+      "ETF-Allocator/src/constraints/portfolio.py",
+      "ETF-Allocator/src/regime/thermometer.py",
+      "ETF-Allocator/src/risk/controller.py"
+    ],
+    "ETF-Allocator/tests/unit/test_allocation.py": [
+      "ETF-Allocator/src/allocation/allocator.py"
+    ],
+    "ETF-Allocator/tests/unit/test_constraints.py": [
+      "ETF-Allocator/src/constraints/portfolio.py"
+    ],
+    "ETF-Allocator/tests/unit/test_investment_records.py": [
+      "ETF-Allocator/src/api/__init__.py",
+      "ETF-Allocator/src/api/server.py"
+    ],
+    "ETF-Allocator/tests/unit/test_regime.py": [
+      "ETF-Allocator/src/regime/thermometer.py"
+    ],
+    "ETF-Allocator/tests/unit/test_regression.py": [
+      "ETF-Allocator/src/allocation/allocator.py",
+      "ETF-Allocator/src/constraints/portfolio.py",
+      "ETF-Allocator/src/regime/thermometer.py"
+    ]
+  },
+  "neighborMap": {
+    "ETF-Allocator/src/allocation/allocator.py": [
+      {
+        "path": "ETF-Allocator/config/settings.py",
+        "batchIndex": 2,
+        "symbols": []
+      },
+      {
+        "path": "ETF-Allocator/run.py",
+        "batchIndex": 2,
+        "symbols": [
+          "get_db_connection",
+          "ensure_etf_seed_data",
+          "update_data",
+          "load_price_series",
+          "load_valuation_series",
+          "get_latest_date",
+          "calculate_factors",
+          "compute_current_weights",
+          "_midpoint_weights",
+          "_demo_weights",
+          "_demo_factors",
+          "_parse_weights_arg",
+          "run_report",
+          "run_rebalance_check"
+        ]
+      },
+      {
+        "path": "ETF-Allocator/src/backtest/engine.py",
+        "batchIndex": 2,
+        "symbols": [
+          "_monthly_dates",
+          "_build_series",
+          "_is_backfill",
+          "_compute_factors",
+          "_thermometer_inputs",
+          "compute_metrics",
+          "_nav_from_returns",
+          "run_backtest"
+        ]
+      },
+      {
+        "path": "ETF-Allocator/tests/integration/test_formulas.py",
+        "batchIndex": 2,
+        "symbols": [
+          "TestPEPercentile",
+          "TestPBPercentile",
+          "TestZScore",
+          "TestMomentum",
+          "TestVolatility",
+          "TestScoringFormulas",
+          "TestThermometer",
+          "TestConstraints",
+          "TestAllocation",
+          "TestSupplementalRequirements",
+          "TestBacktestMetrics",
+          "TestGuozhai"
+        ]
+      },
+      {
+        "path": "ETF-Allocator/tests/unit/test_robustness_contract.py",
+        "batchIndex": 4,
+        "symbols": [
+          "test_date_and_dividend_normalization",
+          "test_schema_stores_eight_digit_dates_as_text",
+          "test_zero_market_return_with_monthly_cashflows_has_zero_metrics",
+          "test_group_cap_uses_all_existing_group_holdings",
+          "test_initial_build_never_redistributes_past_asset_caps",
+          "test_parameter_snapshot_detects_change",
+          "test_date_migration_merges_logical_integer_text_duplicates",
+          "test_flow_a_and_backtest_bank_factors_match"
+        ]
+      }
+    ],
+    "ETF-Allocator/src/api/server.py": [
+      {
+        "path": "ETF-Allocator/config/settings.py",
+        "batchIndex": 2,
+        "symbols": []
+      },
+      {
+        "path": "ETF-Allocator/src/execution/bond_liquidity.py",
+        "batchIndex": 2,
+        "symbols": [
+          "BondAction",
+          "BondAccumulator"
+        ]
+      },
+      {
+        "path": "ETF-Allocator/src/risk/controller.py",
+        "batchIndex": 2,
+        "symbols": [
+          "effective_upper_limit",
+          "all_effective_limits",
+          "reset_recovery_tracking"
+        ]
+      },
+      {
+        "path": "ETF-Allocator/src/scoring/engine.py",
+        "batchIndex": 2,
+        "symbols": [
+          "sigmoid",
+          "score_baijiu",
+          "score_bank",
+          "score_dividend",
+          "score_hs300",
+          "score_kechuang",
+          "score_all"
+        ]
+      },
+      {
+        "path": "ETF-Allocator/src/store/schema.py",
+        "batchIndex": 4,
+        "symbols": [
+          "create_tables",
+          "insert_etf_info",
+          "insert_index_info",
+          "insert_index_valuation",
+          "insert_etf_price"
+        ]
+      }
+    ],
+    "ETF-Allocator/src/constraints/portfolio.py": [
+      {
+        "path": "ETF-Allocator/config/settings.py",
+        "batchIndex": 2,
+        "symbols": []
+      },
+      {
+        "path": "ETF-Allocator/run.py",
+        "batchIndex": 2,
+        "symbols": [
+          "get_db_connection",
+          "ensure_etf_seed_data",
+          "update_data",
+          "load_price_series",
+          "load_valuation_series",
+          "get_latest_date",
+          "calculate_factors",
+          "compute_current_weights",
+          "_midpoint_weights",
+          "_demo_weights",
+          "_demo_factors",
+          "_parse_weights_arg",
+          "run_report",
+          "run_rebalance_check"
+        ]
+      },
+      {
+        "path": "ETF-Allocator/src/backtest/engine.py",
+        "batchIndex": 2,
+        "symbols": [
+          "_monthly_dates",
+          "_build_series",
+          "_is_backfill",
+          "_compute_factors",
+          "_thermometer_inputs",
+          "compute_metrics",
+          "_nav_from_returns",
+          "run_backtest"
+        ]
+      },
+      {
+        "path": "ETF-Allocator/tests/integration/test_formulas.py",
+        "batchIndex": 2,
+        "symbols": [
+          "TestPEPercentile",
+          "TestPBPercentile",
+          "TestZScore",
+          "TestMomentum",
+          "TestVolatility",
+          "TestScoringFormulas",
+          "TestThermometer",
+          "TestConstraints",
+          "TestAllocation",
+          "TestSupplementalRequirements",
+          "TestBacktestMetrics",
+          "TestGuozhai"
+        ]
+      },
+      {
+        "path": "ETF-Allocator/tests/unit/test_robustness_contract.py",
+        "batchIndex": 4,
+        "symbols": [
+          "test_date_and_dividend_normalization",
+          "test_schema_stores_eight_digit_dates_as_text",
+          "test_zero_market_return_with_monthly_cashflows_has_zero_metrics",
+          "test_group_cap_uses_all_existing_group_holdings",
+          "test_initial_build_never_redistributes_past_asset_caps",
+          "test_parameter_snapshot_detects_change",
+          "test_date_migration_merges_logical_integer_text_duplicates",
+          "test_flow_a_and_backtest_bank_factors_match"
+        ]
+      }
+    ],
+    "ETF-Allocator/src/regime/thermometer.py": [
+      {
+        "path": "ETF-Allocator/config/settings.py",
+        "batchIndex": 2,
+        "symbols": []
+      },
+      {
+        "path": "ETF-Allocator/run.py",
+        "batchIndex": 2,
+        "symbols": [
+          "get_db_connection",
+          "ensure_etf_seed_data",
+          "update_data",
+          "load_price_series",
+          "load_valuation_series",
+          "get_latest_date",
+          "calculate_factors",
+          "compute_current_weights",
+          "_midpoint_weights",
+          "_demo_weights",
+          "_demo_factors",
+          "_parse_weights_arg",
+          "run_report",
+          "run_rebalance_check"
+        ]
+      },
+      {
+        "path": "ETF-Allocator/src/backtest/engine.py",
+        "batchIndex": 2,
+        "symbols": [
+          "_monthly_dates",
+          "_build_series",
+          "_is_backfill",
+          "_compute_factors",
+          "_thermometer_inputs",
+          "compute_metrics",
+          "_nav_from_returns",
+          "run_backtest"
+        ]
+      },
+      {
+        "path": "ETF-Allocator/tests/integration/test_backtest_pipeline.py",
+        "batchIndex": 2,
+        "symbols": [
+          "_seed_etf_info",
+          "_seed_index_info",
+          "_seed_valuations",
+          "_seed_prices",
+          "_seed_full_valuation_data",
+          "_seed_full_price_data",
+          "_monthly_dates",
+          "_setup_backtest_db",
+          "TestBacktestSmoke",
+          "TestBacktestOverheat",
+          "TestBacktestFreeze",
+          "TestBackfillExclusion",
+          "TestRebalanceTrigger"
+        ]
+      },
+      {
+        "path": "ETF-Allocator/tests/integration/test_formulas.py",
+        "batchIndex": 2,
+        "symbols": [
+          "TestPEPercentile",
+          "TestPBPercentile",
+          "TestZScore",
+          "TestMomentum",
+          "TestVolatility",
+          "TestScoringFormulas",
+          "TestThermometer",
+          "TestConstraints",
+          "TestAllocation",
+          "TestSupplementalRequirements",
+          "TestBacktestMetrics",
+          "TestGuozhai"
+        ]
+      }
+    ],
+    "ETF-Allocator/tests/integration/test_e2e_scenarios.py": [
+      {
+        "path": "ETF-Allocator/src/risk/controller.py",
+        "batchIndex": 2,
+        "symbols": [
+          "effective_upper_limit",
+          "all_effective_limits",
+          "reset_recovery_tracking"
+        ]
+      }
+    ]
+  }
+}

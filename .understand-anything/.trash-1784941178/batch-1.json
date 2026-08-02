@@ -1,0 +1,833 @@
+{
+  "batchIndex": 1,
+  "nodes": [
+    {
+      "id": "file:ETF-Allocator/dashboard/src/App.tsx",
+      "type": "file",
+      "name": "App.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/App.tsx",
+      "summary": "应用根组件，用 ThemeProvider + BrowserRouter 包裹整体，定义三条路由：/（本月概览）、/trends（历史趋势）、/investments（资金记录），并将废弃的 /simulator 重定向到首页。",
+      "tags": ["组件", "路由", "入口", "ThemeProvider"],
+      "complexity": "simple",
+      "language": "typescript",
+      "languageNotes": "使用 react-router-dom 的 BrowserRouter/Routes/Route，并通过 Navigate 实现路由重定向。"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/App.tsx:App",
+      "type": "function",
+      "name": "App",
+      "filePath": "ETF-Allocator/dashboard/src/App.tsx",
+      "summary": "默认导出的根组件，组合 ThemeProvider、NavBar 与三条页面路由，构成整个单页应用的壳。",
+      "tags": ["组件", "路由", "根组件"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/main.tsx",
+      "type": "file",
+      "name": "main.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/main.tsx",
+      "summary": "Vite 应用入口。在挂载前调用 applyTheme(getSavedTheme()) 与 applyMode('light') 初始化主题，再用 createRoot 将 <App/> 渲染到 #root。",
+      "tags": ["入口", "启动", "主题初始化", "createRoot"],
+      "complexity": "simple",
+      "language": "typescript",
+      "languageNotes": " StrictMode 包裹根组件以便在开发期检测副作用问题。"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/types.ts",
+      "type": "file",
+      "name": "types.ts",
+      "filePath": "ETF-Allocator/dashboard/src/types.ts",
+      "summary": "前端全局类型与常量中心。定义 MonthlyReport、MarketThermometer、PortfolioRisk、AllocationItem、BondStatus、InvestmentRecord 等核心数据结构，以及与后端 ASSETS 对应的 INDEX_MAP 和 ETF_TRACKING_INDEX 常量。",
+      "tags": ["类型定义", "数据结构", "schema", "常量", "core"],
+      "complexity": "moderate",
+      "language": "typescript",
+      "languageNotes": "所有接口均带 JSDoc 中文注释；ETF_TRACKING_INDEX 与后端 config/settings.py::ASSETS 保持一致。"
+    },
+    {
+      "id": "class:ETF-Allocator/dashboard/src/types.ts:MonthlyReport",
+      "type": "class",
+      "name": "MonthlyReport",
+      "filePath": "ETF-Allocator/dashboard/src/types.ts",
+      "summary": "月度配置报告的顶层 schema，聚合市场温度、组合风险、分配明细与可选的国债累积池状态，是 /api/report 的响应类型。",
+      "tags": ["interface", "schema", "月度报告"],
+      "complexity": "moderate",
+      "language": "typescript"
+    },
+    {
+      "id": "class:ETF-Allocator/dashboard/src/types.ts:MarketThermometer",
+      "type": "class",
+      "name": "MarketThermometer",
+      "filePath": "ETF-Allocator/dashboard/src/types.ts",
+      "summary": "市场温度计 schema：沪深300 PE 分位、全A PB 分位（含长周期可选字段）、权益/债权比例与状态标识。",
+      "tags": ["interface", "schema", "温度计"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "class:ETF-Allocator/dashboard/src/types.ts:BondStatus",
+      "type": "class",
+      "name": "BondStatus",
+      "filePath": "ETF-Allocator/dashboard/src/types.ts",
+      "summary": "国债累积池状态 schema（BondAccumulator 输出），描述余额、最低门槛、累计利息、本月可买手数及实际执行情况。",
+      "tags": ["interface", "schema", "国债", "累积池"],
+      "complexity": "moderate",
+      "language": "typescript"
+    },
+    {
+      "id": "class:ETF-Allocator/dashboard/src/types.ts:InvestmentRecord",
+      "type": "class",
+      "name": "InvestmentRecord",
+      "filePath": "ETF-Allocator/dashboard/src/types.ts",
+      "summary": "用户手动录入的投入记录 schema，包含日期、总金额、各资产分配明细与备注。",
+      "tags": ["interface", "schema", "投入记录"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "class:ETF-Allocator/dashboard/src/types.ts:SimulateRequest",
+      "type": "class",
+      "name": "SimulateRequest",
+      "filePath": "ETF-Allocator/dashboard/src/types.ts",
+      "summary": "POST /api/report 的请求体 schema：日期、新增资金、总资产、当前各资产权重，用于基于自定义持仓做模拟分配。",
+      "tags": ["interface", "schema", "模拟请求"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/lib/utils.ts",
+      "type": "file",
+      "name": "utils.ts",
+      "filePath": "ETF-Allocator/dashboard/src/lib/utils.ts",
+      "summary": "前端通用工具：cn() 合并 Tailwind class（clsx + tailwind-merge），formatLocalDate() 以本地时区生成 YYYY-MM-DD 字符串，避免 UTC 偏差。",
+      "tags": ["工具", "cn", "日期", "shadcn"],
+      "complexity": "simple",
+      "language": "typescript",
+      "languageNotes": "cn 来源于 shadcn/ui 约定，被几乎所有组件用于条件 class 合并。"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/lib/utils.ts:cn",
+      "type": "function",
+      "name": "cn",
+      "filePath": "ETF-Allocator/dashboard/src/lib/utils.ts",
+      "summary": "合并条件 class 并解决 Tailwind 冲突的工具函数（twMerge(clsx(...))）。",
+      "tags": ["工具", "Tailwind", "shadcn"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/lib/utils.ts:formatLocalDate",
+      "type": "function",
+      "name": "formatLocalDate",
+      "filePath": "ETF-Allocator/dashboard/src/lib/utils.ts",
+      "summary": "返回本地时区的 YYYY-MM-DD 字符串，默认当前日期，作为 API 查询参数避免后端按 UTC 解析导致的日期错位。",
+      "tags": ["工具", "日期", "本地时区"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/components/ExportPanel.tsx",
+      "type": "file",
+      "name": "ExportPanel.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/components/ExportPanel.tsx",
+      "summary": "报告导出/分享面板。把 MonthlyReport 渲染成适合截图分享的紧凑卡片：市场温度、PE/PB 分位、新增资金、权益缺口提示、持仓占比条、分配建议表、因子组约束告警、再平衡日期，并提供复制/分享按钮。",
+      "tags": ["组件", "导出", "分享", "报告卡片"],
+      "complexity": "complex",
+      "language": "typescript",
+      "languageNotes": "通过 props 注入 onCopy/onShare 回调；scoreColor 把机会分映射成颜色。"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/components/ExportPanel.tsx:ExportPanel",
+      "type": "function",
+      "name": "ExportPanel",
+      "filePath": "ETF-Allocator/dashboard/src/components/ExportPanel.tsx",
+      "summary": "导出面板组件，接收 report 与 onCopy/onShare 回调，渲染市场温度、权益缺口、持仓、分配表、约束告警等并触发复制/分享。",
+      "tags": ["组件", "导出", "props回调"],
+      "complexity": "complex",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/components/Formula.tsx",
+      "type": "file",
+      "name": "Formula.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/components/Formula.tsx",
+      "summary": "使用 KaTeX 渲染 LaTeX 公式的轻量组件，通过 useEffect 在 ref 上调用 katex.render，失败时回退为纯文本。",
+      "tags": ["组件", "KaTeX", "LaTeX", "useEffect", "useRef"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/components/Formula.tsx:Formula",
+      "type": "function",
+      "name": "Formula",
+      "filePath": "ETF-Allocator/dashboard/src/components/Formula.tsx",
+      "summary": "LaTeX 公式渲染组件，接收 tex 字符串和 displayMode 选项，用 KaTeX 在挂载/更新时渲染。",
+      "tags": ["组件", "KaTeX", "hook:useEffect", "hook:useRef"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/components/GlassCard.tsx",
+      "type": "file",
+      "name": "GlassCard.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/components/GlassCard.tsx",
+      "summary": "通用毛玻璃卡片容器，可选标题与信息提示（InfoTip）。整个 dashboard 几乎所有面板都用它作为外壳。",
+      "tags": ["组件", "容器", "毛玻璃", "UI基础"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/components/GlassCard.tsx:GlassCard",
+      "type": "function",
+      "name": "GlassCard",
+      "filePath": "ETF-Allocator/dashboard/src/components/GlassCard.tsx",
+      "summary": "默认导出的玻璃卡片组件，渲染 children 并在提供 title/info 时展示标题与悬浮提示。",
+      "tags": ["组件", "容器"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/components/InfoTip.tsx",
+      "type": "file",
+      "name": "InfoTip.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/components/InfoTip.tsx",
+      "summary": "带 ? 图标的悬浮提示组件。鼠标悬浮或点击切换显示气泡，可选渲染 Formula 公式；被 GlassCard、ThermometerWidget、RiskBarWidget 等广泛复用。",
+      "tags": ["组件", "tooltip", "hook:useState", "UI基础"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/components/InfoTip.tsx:InfoTip",
+      "type": "function",
+      "name": "InfoTip",
+      "filePath": "ETF-Allocator/dashboard/src/components/InfoTip.tsx",
+      "summary": "信息提示气泡组件，hover/click 切换可见性，可附加 LaTeX 公式说明。",
+      "tags": ["组件", "tooltip", "hook:useState"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/components/NavBar.tsx",
+      "type": "file",
+      "name": "NavBar.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/components/NavBar.tsx",
+      "summary": "顶部导航栏。桌面端展示三个路由按钮和当前日期，移动端通过 hamburger 菜单展开下拉。基于 useNavigate/useLocation 高亮当前路由。",
+      "tags": ["组件", "导航", "hook:useState", "useNavigate", "useLocation", "响应式"],
+      "complexity": "moderate",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/components/NavBar.tsx:NavBar",
+      "type": "function",
+      "name": "NavBar",
+      "filePath": "ETF-Allocator/dashboard/src/components/NavBar.tsx",
+      "summary": "默认导出的导航栏组件，管理移动端菜单开关并根据当前路径高亮导航项。",
+      "tags": ["组件", "导航", "hook:useState"],
+      "complexity": "moderate",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/components/ProgressBar.tsx",
+      "type": "file",
+      "name": "ProgressBar.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/components/ProgressBar.tsx",
+      "summary": "通用进度条组件。支持 auto/safe/warning/danger/primary 多种配色，可选 label、百分比显示与 InfoTip 提示，被 RiskBarWidget 使用。",
+      "tags": ["组件", "进度条", "UI基础"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/components/ProgressBar.tsx:ProgressBar",
+      "type": "function",
+      "name": "ProgressBar",
+      "filePath": "ETF-Allocator/dashboard/src/components/ProgressBar.tsx",
+      "summary": "默认导出的进度条组件，按 value/max 计算填充比例并根据阈值或显式 color 选择填充色。",
+      "tags": ["组件", "进度条"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/components/Skeleton.tsx",
+      "type": "file",
+      "name": "Skeleton.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/components/Skeleton.tsx",
+      "summary": "骨架屏组件集合，导出 SkeletonBox/SkeletonCard/SkeletonTable/SkeletonChart 四种占位样式，用于数据加载期间的占位显示。",
+      "tags": ["组件", "骨架屏", "loading", "UI基础"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/components/frontend-bugs.test.tsx",
+      "type": "file",
+      "name": "frontend-bugs.test.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/components/frontend-bugs.test.tsx",
+      "summary": "前端回归测试。用 Vitest + Testing Library 验证：温度计冻结文案、成长组上限告警、无 bond_status 时国债分配卡片、/simulator 重定向、投入记录创建并刷新汇总等历史 bug 的修复。",
+      "tags": ["测试", "回归", "Vitest", "Testing Library", "mock fetch"],
+      "complexity": "complex",
+      "language": "typescript",
+      "languageNotes": "通过 vi.spyOn(globalThis,'fetch') 链式 mock 多次响应，验证 POST /api/investments 的请求体。"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/components/layout/GridDashboard.tsx",
+      "type": "file",
+      "name": "GridDashboard.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/components/layout/GridDashboard.tsx",
+      "summary": "基于 react-grid-layout 的可拖拽响应式网格容器。从 localStorage 读取/保存布局，按断点 lg/md/sm 渲染 widgets，每个 widget 外层套 GlassCard 并提供 drag-handle。",
+      "tags": ["组件", "布局", "react-grid-layout", "拖拽", "localStorage", "useMemo"],
+      "complexity": "complex",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/components/layout/GridDashboard.tsx:GridDashboard",
+      "type": "function",
+      "name": "GridDashboard",
+      "filePath": "ETF-Allocator/dashboard/src/components/layout/GridDashboard.tsx",
+      "summary": "导出的网格仪表盘组件，使用 useContainerWidth 测量宽度，按保存的布局渲染可拖拽/缩放的 widget 卡片，并持久化到 localStorage。",
+      "tags": ["组件", "布局", "拖拽"],
+      "complexity": "complex",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/hooks/useDashboardData.ts",
+      "type": "file",
+      "name": "useDashboardData.ts",
+      "filePath": "ETF-Allocator/dashboard/src/hooks/useDashboardData.ts",
+      "summary": "仪表盘主数据 hook。轮询 /api/report（10s）和估值历史，把 MonthlyReport 转换成 widget 友好的结构（thermometerData/allocationData/equityRingData/riskData/scores/bondStatus/activityLog/valuationHistory），并用 AbortController 管理竞态。",
+      "tags": ["hook", "数据获取", "轮询", "AbortController", "useMemo", "useCallback", "core"],
+      "complexity": "complex",
+      "language": "typescript",
+      "languageNotes": "transformReport 把后端 schema 转成各 widget 直接消费的形态；活动日志按日期去重并保留最近 20 条。"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/hooks/useDashboardData.ts:useDashboardData",
+      "type": "function",
+      "name": "useDashboardData",
+      "filePath": "ETF-Allocator/dashboard/src/hooks/useDashboardData.ts",
+      "summary": "聚合仪表盘数据的自定义 hook，返回 report/loading/error/refetch 以及多个 widget-ready 数据切片。",
+      "tags": ["hook", "数据获取", "轮询"],
+      "complexity": "complex",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/hooks/useHistory.ts",
+      "type": "file",
+      "name": "useHistory.ts",
+      "filePath": "ETF-Allocator/dashboard/src/hooks/useHistory.ts",
+      "summary": "通用估值历史 hook。根据 INDEX_MAP 的 key、field（pe/pb）和年数调用 /api/history，返回 FetchState<HistoryPoint[]>，被 Trends 页使用。",
+      "tags": ["hook", "数据获取", "FetchState", "AbortController", "历史"],
+      "complexity": "moderate",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/hooks/useHistory.ts:useHistory",
+      "type": "function",
+      "name": "useHistory",
+      "filePath": "ETF-Allocator/dashboard/src/hooks/useHistory.ts",
+      "summary": "导出的历史数据 hook，按指数/字段/年数拉取 PE/PB 分位序列并暴露 loading/error/data。",
+      "tags": ["hook", "数据获取"],
+      "complexity": "moderate",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/hooks/useInvestmentRecords.ts",
+      "type": "file",
+      "name": "useInvestmentRecords.ts",
+      "filePath": "ETF-Allocator/dashboard/src/hooks/useInvestmentRecords.ts",
+      "summary": "投入记录 CRUD hook。封装 GET/POST/DELETE /api/investments，返回 data/loading/saving/deletingId/error 以及 refetch/createRecord/deleteRecord；apiError 解析 FastAPI 的 detail 错误体。",
+      "tags": ["hook", "CRUD", "投入记录", "AbortController", "useCallback"],
+      "complexity": "complex",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/hooks/useInvestmentRecords.ts:useInvestmentRecords",
+      "type": "function",
+      "name": "useInvestmentRecords",
+      "filePath": "ETF-Allocator/dashboard/src/hooks/useInvestmentRecords.ts",
+      "summary": "导出的投入记录管理 hook，提供列表加载、新建、删除及对应的加载态与错误信息。",
+      "tags": ["hook", "CRUD"],
+      "complexity": "complex",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/hooks/useReport.ts",
+      "type": "file",
+      "name": "useReport.ts",
+      "filePath": "ETF-Allocator/dashboard/src/hooks/useReport.ts",
+      "summary": "导出两个 hook：useReport(date) 拉取指定日期的月度报告，useSimulate() 通过 POST /api/report 基于自定义持仓做模拟分配。均使用 AbortController 防竞态。",
+      "tags": ["hook", "数据获取", "模拟", "AbortController"],
+      "complexity": "moderate",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/hooks/useReport.ts:useReport",
+      "type": "function",
+      "name": "useReport",
+      "filePath": "ETF-Allocator/dashboard/src/hooks/useReport.ts",
+      "summary": "按日期获取 MonthlyReport 的 hook，返回 FetchState 与 refetch。",
+      "tags": ["hook", "数据获取"],
+      "complexity": "moderate",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/hooks/useReport.ts:useSimulate",
+      "type": "function",
+      "name": "useSimulate",
+      "filePath": "ETF-Allocator/dashboard/src/hooks/useReport.ts",
+      "summary": "提交 SimulateRequest 触发模拟分配的 hook，返回 data/loading/error 与 simulate 函数。",
+      "tags": ["hook", "模拟", "POST"],
+      "complexity": "moderate",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx",
+      "type": "file",
+      "name": "AiriDashboard.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx",
+      "summary": "主页本月概览。整合 useDashboardData 与 useSimulate，提供持仓输入、新增资金设置，将模拟结果覆盖默认报告；并通过多个 widget（温度计/权益环/分配卡/因子雷达/估值分位/风险条/活动日志）+ ExportPanel 渲染完整配置视图，同时生成微信友好的纯文本导出。",
+      "tags": ["页面", "核心", "hook:useState", "hook:useEffect", "hook:useMemo", "hook:useCallback", "localStorage", "导出"],
+      "complexity": "complex",
+      "language": "typescript",
+      "languageNotes": "持仓与新资金持久化到 localStorage；useValuationHistory 是文件内的私有 hook；exportText 用 pad 处理中英文混排版。"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx:AiriDashboard",
+      "type": "function",
+      "name": "AiriDashboard",
+      "filePath": "ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx",
+      "summary": "默认导出的主页组件，编排持仓输入、模拟计算与全部 widget，是整个 dashboard 的核心展示页。",
+      "tags": ["组件", "页面", "核心"],
+      "complexity": "complex",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx:useValuationHistory",
+      "type": "function",
+      "name": "useValuationHistory",
+      "filePath": "ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx",
+      "summary": "文件内私有 hook，并行拉取选中资产的 PE/PB 历史，合并成 {date,pePercentile,pbPercentile} 序列供估值图 widget 使用。",
+      "tags": ["hook", "私有", "历史"],
+      "complexity": "moderate",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx:HoldingsInput",
+      "type": "function",
+      "name": "HoldingsInput",
+      "filePath": "ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx",
+      "summary": "持仓输入子组件，渲染六只 ETF 的金额输入框并实时显示合计。",
+      "tags": ["组件", "表单", "持仓"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/pages/InvestmentHistory.tsx",
+      "type": "file",
+      "name": "InvestmentHistory.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/pages/InvestmentHistory.tsx",
+      "summary": "资金记录页。展示最近一次/累计/次数汇总卡，提供录入表单（日期、各资产金额、备注）与历史记录列表（含删除二次确认），通过 useInvestmentRecords 完成增删。",
+      "tags": ["页面", "表单", "hook:useState", "CRUD", "删除确认"],
+      "complexity": "complex",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/pages/InvestmentHistory.tsx:InvestmentHistory",
+      "type": "function",
+      "name": "InvestmentHistory",
+      "filePath": "ETF-Allocator/dashboard/src/pages/InvestmentHistory.tsx",
+      "summary": "默认导出的资金记录页组件，组合汇总卡片、录入表单与历史列表，含本地校验与删除二次确认。",
+      "tags": ["组件", "页面", "表单"],
+      "complexity": "complex",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/pages/Trends.tsx",
+      "type": "file",
+      "name": "Trends.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/pages/Trends.tsx",
+      "summary": "历史趋势页。使用 useHistory 拉取选中指数 5 年 PE 分位，用 Recharts LineChart 绘制走势，叠加 90% 过热参考线，并提供指数切换按钮和自定义 tooltip。",
+      "tags": ["页面", "Recharts", "折线图", "hook:useState", "PE分位"],
+      "complexity": "moderate",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/pages/Trends.tsx:Trends",
+      "type": "function",
+      "name": "Trends",
+      "filePath": "ETF-Allocator/dashboard/src/pages/Trends.tsx",
+      "summary": "默认导出的历史趋势页组件，渲染指数选择器与 PE 分位折线图。",
+      "tags": ["组件", "页面", "图表"],
+      "complexity": "moderate",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/widgets/ActivityLogWidget.tsx",
+      "type": "file",
+      "name": "ActivityLogWidget.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/widgets/ActivityLogWidget.tsx",
+      "summary": "活动日志 widget。取最近 8 条 API 查询记录倒序展示，用 framer-motion 做淡入动画。",
+      "tags": ["widget", "日志", "framer-motion"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/widgets/ActivityLogWidget.tsx:ActivityLogWidget",
+      "type": "function",
+      "name": "ActivityLogWidget",
+      "filePath": "ETF-Allocator/dashboard/src/widgets/ActivityLogWidget.tsx",
+      "summary": "活动日志 widget 组件，倒序展示最近若干条查询摘要并带淡入动画。",
+      "tags": ["widget", "日志"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/widgets/AllocationCardsWidget.tsx",
+      "type": "file",
+      "name": "AllocationCardsWidget.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/widgets/AllocationCardsWidget.tsx",
+      "summary": "本月分配卡片 widget。把各资产分配渲染成可点击卡片（带机会分徽章），国债 ETF 特殊处理：根据 bondStatus 显示已买入金额或累积进度卡。点击非国债卡片可联动估值图。",
+      "tags": ["widget", "分配", "国债", "framer-motion", "交互"],
+      "complexity": "complex",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/widgets/AllocationCardsWidget.tsx:AllocationCardsWidget",
+      "type": "function",
+      "name": "AllocationCardsWidget",
+      "filePath": "ETF-Allocator/dashboard/src/widgets/AllocationCardsWidget.tsx",
+      "summary": "导出的分配卡片 widget，渲染各资产金额/机会分并处理国债累积池的多种状态展示，支持选中联动。",
+      "tags": ["widget", "分配"],
+      "complexity": "complex",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/widgets/AllocationCardsWidget.tsx:BondProgressCard",
+      "type": "function",
+      "name": "BondProgressCard",
+      "filePath": "ETF-Allocator/dashboard/src/widgets/AllocationCardsWidget.tsx",
+      "summary": "国债累积进度子组件，显示余额/门槛进度条、可买手数与预计还需月数。",
+      "tags": ["组件", "国债", "进度"],
+      "complexity": "moderate",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/widgets/EquityRingWidget.tsx",
+      "type": "file",
+      "name": "EquityRingWidget.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/widgets/EquityRingWidget.tsx",
+      "summary": "权益仓位环 widget。用 SVG 圆环 + framer-motion 动画展示权益比例，颜色由 ringColor 决定，中心显示百分比。",
+      "tags": ["widget", "SVG", "framer-motion", "权益"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/widgets/EquityRingWidget.tsx:EquityRingWidget",
+      "type": "function",
+      "name": "EquityRingWidget",
+      "filePath": "ETF-Allocator/dashboard/src/widgets/EquityRingWidget.tsx",
+      "summary": "权益仓位环 widget 组件，用动画圆环可视化权益/债权比例。",
+      "tags": ["widget", "权益"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/widgets/FactorRadarWidget.tsx",
+      "type": "file",
+      "name": "FactorRadarWidget.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/widgets/FactorRadarWidget.tsx",
+      "summary": "因子雷达 widget。用 Recharts RadarChart 展示五只权益 ETF 的机会分（null→0），自定义极轴标签按分值着色并显示分数，灰色表示数据不足。",
+      "tags": ["widget", "Recharts", "雷达图", "机会分"],
+      "complexity": "moderate",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/widgets/FactorRadarWidget.tsx:FactorRadarWidget",
+      "type": "function",
+      "name": "FactorRadarWidget",
+      "filePath": "ETF-Allocator/dashboard/src/widgets/FactorRadarWidget.tsx",
+      "summary": "因子雷达 widget 组件，把机会分记录渲染成雷达图并自定义坐标轴标签。",
+      "tags": ["widget", "雷达图"],
+      "complexity": "moderate",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/widgets/RiskBarWidget.tsx",
+      "type": "file",
+      "name": "RiskBarWidget.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/widgets/RiskBarWidget.tsx",
+      "summary": "组合风险 widget。用两个 ProgressBar 展示 VALUE 组（白酒+银行+红利+沪深300）和 GROWTH 组（科创50）相对上限的占比，并用 InfoTip 解释单资产约束系数公式。",
+      "tags": ["widget", "风险", "ProgressBar", "因子组约束"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/widgets/RiskBarWidget.tsx:RiskBarWidget",
+      "type": "function",
+      "name": "RiskBarWidget",
+      "filePath": "ETF-Allocator/dashboard/src/widgets/RiskBarWidget.tsx",
+      "summary": "组合风险 widget 组件，渲染 VALUE/GROWTH 两组的进度条与约束说明。",
+      "tags": ["widget", "风险"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/widgets/ThermometerWidget.tsx",
+      "type": "file",
+      "name": "ThermometerWidget.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/widgets/ThermometerWidget.tsx",
+      "summary": "市场温度计 widget。用径向 SVG 仪表盘 + framer-motion 动画展示权益比例（zoneFor 着色），下方显示 PE/PB 分位与多条 InfoTip 解释温度计档位与分位含义。",
+      "tags": ["widget", "SVG", "framer-motion", "温度计", "InfoTip"],
+      "complexity": "moderate",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/widgets/ThermometerWidget.tsx:ThermometerWidget",
+      "type": "function",
+      "name": "ThermometerWidget",
+      "filePath": "ETF-Allocator/dashboard/src/widgets/ThermometerWidget.tsx",
+      "summary": "温度计 widget 组件，用径向仪表可视化权益上限并标注 PE/PB 分位。",
+      "tags": ["widget", "温度计"],
+      "complexity": "moderate",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/widgets/ValuationChartWidget.tsx",
+      "type": "file",
+      "name": "ValuationChartWidget.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/widgets/ValuationChartWidget.tsx",
+      "summary": "估值分位图 widget。用 Recharts AreaChart 绘制选中资产 PE/PB 分位（0-100）走势，叠加 60/80/90 参考线，并提供 2/5/10 年窗口切换。",
+      "tags": ["widget", "Recharts", "面积图", "估值", "PE", "PB"],
+      "complexity": "moderate",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/widgets/ValuationChartWidget.tsx:ValuationChartWidget",
+      "type": "function",
+      "name": "ValuationChartWidget",
+      "filePath": "ETF-Allocator/dashboard/src/widgets/ValuationChartWidget.tsx",
+      "summary": "估值分位图 widget 组件，渲染 PE/PB 分位面积图与年份切换按钮。",
+      "tags": ["widget", "估值"],
+      "complexity": "moderate",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/widgets/registry.ts",
+      "type": "file",
+      "name": "registry.ts",
+      "filePath": "ETF-Allocator/dashboard/src/widgets/registry.ts",
+      "summary": "widget 注册表。集中声明 7 个 widget 的元信息（组件、标题、默认/最小尺寸）并定义大屏默认布局 DEFAULT_LAYOUTS.lg，供 GridDashboard 等消费。",
+      "tags": ["注册表", "widget", "布局", "配置"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/widgets/utils.ts",
+      "type": "file",
+      "name": "utils.ts",
+      "filePath": "ETF-Allocator/dashboard/src/widgets/utils.ts",
+      "summary": "widget 共享纯函数集合：historyToPercentileSeries（历史→分位序列）、zoneFor（权益比→温度色区）、ringColor（仓位环颜色）、riskBarColor（风险条颜色）、scoreBadgeColor（机会分徽章颜色）。无 React 依赖，可单测。",
+      "tags": ["工具", "纯函数", "颜色映射", "可测试"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/widgets/utils.ts:zoneFor",
+      "type": "function",
+      "name": "zoneFor",
+      "filePath": "ETF-Allocator/dashboard/src/widgets/utils.ts",
+      "summary": "按权益比例映射温度色区（绿/蓝/橙/红）与标签，对应温度计 4 档。",
+      "tags": ["纯函数", "温度计", "颜色"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/widgets/utils.ts:historyToPercentileSeries",
+      "type": "function",
+      "name": "historyToPercentileSeries",
+      "filePath": "ETF-Allocator/dashboard/src/widgets/utils.ts",
+      "summary": "把 {date,percentile} 历史点过滤并转换为 0-100 的分位序列，跳过非法值，供 Trends 折线图使用。",
+      "tags": ["纯函数", "数据转换", "分位"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/widgets/utils.ts:ringColor",
+      "type": "function",
+      "name": "ringColor",
+      "filePath": "ETF-Allocator/dashboard/src/widgets/utils.ts",
+      "summary": "按权益比例返回仓位环颜色（绿/蓝/橙）。",
+      "tags": ["纯函数", "颜色"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/widgets/utils.test.ts",
+      "type": "file",
+      "name": "utils.test.ts",
+      "filePath": "ETF-Allocator/dashboard/src/widgets/utils.test.ts",
+      "summary": "widget 纯函数单元测试。用 Vitest 覆盖 historyToPercentileSeries（含边界钳制）、zoneFor（4 档及边界）、ringColor、riskBarColor、scoreBadgeColor 的颜色与标签映射。",
+      "tags": ["测试", "单元测试", "Vitest", "纯函数"],
+      "complexity": "moderate",
+      "language": "typescript"
+    }
+  ],
+  "edges": [
+    {"source": "file:ETF-Allocator/dashboard/src/App.tsx", "target": "file:ETF-Allocator/dashboard/src/components/NavBar.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/App.tsx", "target": "file:ETF-Allocator/dashboard/src/contexts/ThemeContext.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/App.tsx", "target": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/App.tsx", "target": "file:ETF-Allocator/dashboard/src/pages/InvestmentHistory.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/App.tsx", "target": "file:ETF-Allocator/dashboard/src/pages/Trends.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/App.tsx", "target": "function:ETF-Allocator/dashboard/src/App.tsx:App", "type": "contains", "weight": 1.0},
+    {"source": "function:ETF-Allocator/dashboard/src/App.tsx:App", "target": "function:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx:AiriDashboard", "type": "routes", "weight": 0.5},
+    {"source": "function:ETF-Allocator/dashboard/src/App.tsx:App", "target": "function:ETF-Allocator/dashboard/src/pages/Trends.tsx:Trends", "type": "routes", "weight": 0.5},
+    {"source": "function:ETF-Allocator/dashboard/src/App.tsx:App", "target": "function:ETF-Allocator/dashboard/src/pages/InvestmentHistory.tsx:InvestmentHistory", "type": "routes", "weight": 0.5},
+
+    {"source": "file:ETF-Allocator/dashboard/src/main.tsx", "target": "file:ETF-Allocator/dashboard/src/App.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/main.tsx", "target": "file:ETF-Allocator/dashboard/src/design-system/theme.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/main.tsx", "target": "file:ETF-Allocator/dashboard/src/index.css", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/main.tsx", "target": "file:ETF-Allocator/dashboard/src/design-system/theme.ts", "type": "configures", "weight": 0.6},
+
+    {"source": "file:ETF-Allocator/dashboard/src/types.ts", "target": "class:ETF-Allocator/dashboard/src/types.ts:MonthlyReport", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/dashboard/src/types.ts", "target": "class:ETF-Allocator/dashboard/src/types.ts:MarketThermometer", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/dashboard/src/types.ts", "target": "class:ETF-Allocator/dashboard/src/types.ts:BondStatus", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/dashboard/src/types.ts", "target": "class:ETF-Allocator/dashboard/src/types.ts:InvestmentRecord", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/dashboard/src/types.ts", "target": "class:ETF-Allocator/dashboard/src/types.ts:SimulateRequest", "type": "contains", "weight": 1.0},
+    {"source": "class:ETF-Allocator/dashboard/src/types.ts:MonthlyReport", "target": "class:ETF-Allocator/dashboard/src/types.ts:MarketThermometer", "type": "defines_schema", "weight": 0.8},
+    {"source": "class:ETF-Allocator/dashboard/src/types.ts:MonthlyReport", "target": "class:ETF-Allocator/dashboard/src/types.ts:BondStatus", "type": "defines_schema", "weight": 0.8},
+
+    {"source": "file:ETF-Allocator/dashboard/src/lib/utils.ts", "target": "function:ETF-Allocator/dashboard/src/lib/utils.ts:cn", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/dashboard/src/lib/utils.ts", "target": "function:ETF-Allocator/dashboard/src/lib/utils.ts:formatLocalDate", "type": "contains", "weight": 1.0},
+
+    {"source": "file:ETF-Allocator/dashboard/src/components/ExportPanel.tsx", "target": "file:ETF-Allocator/dashboard/src/types.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/components/ExportPanel.tsx", "target": "function:ETF-Allocator/dashboard/src/components/ExportPanel.tsx:ExportPanel", "type": "contains", "weight": 1.0},
+    {"source": "function:ETF-Allocator/dashboard/src/components/ExportPanel.tsx:ExportPanel", "target": "class:ETF-Allocator/dashboard/src/types.ts:MonthlyReport", "type": "depends_on", "weight": 0.6},
+
+    {"source": "file:ETF-Allocator/dashboard/src/components/Formula.tsx", "target": "function:ETF-Allocator/dashboard/src/components/Formula.tsx:Formula", "type": "contains", "weight": 1.0},
+
+    {"source": "file:ETF-Allocator/dashboard/src/components/GlassCard.tsx", "target": "file:ETF-Allocator/dashboard/src/components/InfoTip.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/components/GlassCard.tsx", "target": "function:ETF-Allocator/dashboard/src/components/GlassCard.tsx:GlassCard", "type": "contains", "weight": 1.0},
+    {"source": "function:ETF-Allocator/dashboard/src/components/GlassCard.tsx:GlassCard", "target": "function:ETF-Allocator/dashboard/src/components/InfoTip.tsx:InfoTip", "type": "calls", "weight": 0.8},
+
+    {"source": "file:ETF-Allocator/dashboard/src/components/InfoTip.tsx", "target": "file:ETF-Allocator/dashboard/src/components/Formula.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/components/InfoTip.tsx", "target": "function:ETF-Allocator/dashboard/src/components/InfoTip.tsx:InfoTip", "type": "contains", "weight": 1.0},
+    {"source": "function:ETF-Allocator/dashboard/src/components/InfoTip.tsx:InfoTip", "target": "function:ETF-Allocator/dashboard/src/components/Formula.tsx:Formula", "type": "calls", "weight": 0.8},
+
+    {"source": "file:ETF-Allocator/dashboard/src/components/NavBar.tsx", "target": "function:ETF-Allocator/dashboard/src/components/NavBar.tsx:NavBar", "type": "contains", "weight": 1.0},
+
+    {"source": "file:ETF-Allocator/dashboard/src/components/ProgressBar.tsx", "target": "file:ETF-Allocator/dashboard/src/components/InfoTip.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/components/ProgressBar.tsx", "target": "function:ETF-Allocator/dashboard/src/components/ProgressBar.tsx:ProgressBar", "type": "contains", "weight": 1.0},
+    {"source": "function:ETF-Allocator/dashboard/src/components/ProgressBar.tsx:ProgressBar", "target": "function:ETF-Allocator/dashboard/src/components/InfoTip.tsx:InfoTip", "type": "calls", "weight": 0.8},
+
+    {"source": "file:ETF-Allocator/dashboard/src/components/frontend-bugs.test.tsx", "target": "file:ETF-Allocator/dashboard/src/App.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/components/frontend-bugs.test.tsx", "target": "file:ETF-Allocator/dashboard/src/components/ExportPanel.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/components/frontend-bugs.test.tsx", "target": "file:ETF-Allocator/dashboard/src/pages/InvestmentHistory.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/components/frontend-bugs.test.tsx", "target": "file:ETF-Allocator/dashboard/src/types.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/components/frontend-bugs.test.tsx", "target": "file:ETF-Allocator/dashboard/src/widgets/AllocationCardsWidget.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/components/ExportPanel.tsx", "target": "file:ETF-Allocator/dashboard/src/components/frontend-bugs.test.tsx", "type": "tested_by", "weight": 0.5},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/InvestmentHistory.tsx", "target": "file:ETF-Allocator/dashboard/src/components/frontend-bugs.test.tsx", "type": "tested_by", "weight": 0.5},
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/AllocationCardsWidget.tsx", "target": "file:ETF-Allocator/dashboard/src/components/frontend-bugs.test.tsx", "type": "tested_by", "weight": 0.5},
+    {"source": "file:ETF-Allocator/dashboard/src/App.tsx", "target": "file:ETF-Allocator/dashboard/src/components/frontend-bugs.test.tsx", "type": "tested_by", "weight": 0.5},
+
+    {"source": "file:ETF-Allocator/dashboard/src/components/layout/GridDashboard.tsx", "target": "file:ETF-Allocator/dashboard/src/components/GlassCard.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/components/layout/GridDashboard.tsx", "target": "function:ETF-Allocator/dashboard/src/components/layout/GridDashboard.tsx:GridDashboard", "type": "contains", "weight": 1.0},
+    {"source": "function:ETF-Allocator/dashboard/src/components/layout/GridDashboard.tsx:GridDashboard", "target": "function:ETF-Allocator/dashboard/src/components/GlassCard.tsx:GlassCard", "type": "calls", "weight": 0.8},
+
+    {"source": "file:ETF-Allocator/dashboard/src/hooks/useDashboardData.ts", "target": "file:ETF-Allocator/dashboard/src/lib/utils.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/hooks/useDashboardData.ts", "target": "file:ETF-Allocator/dashboard/src/types.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/hooks/useDashboardData.ts", "target": "function:ETF-Allocator/dashboard/src/hooks/useDashboardData.ts:useDashboardData", "type": "contains", "weight": 1.0},
+    {"source": "function:ETF-Allocator/dashboard/src/hooks/useDashboardData.ts:useDashboardData", "target": "function:ETF-Allocator/dashboard/src/lib/utils.ts:formatLocalDate", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/dashboard/src/hooks/useDashboardData.ts:useDashboardData", "target": "class:ETF-Allocator/dashboard/src/types.ts:MonthlyReport", "type": "depends_on", "weight": 0.6},
+
+    {"source": "file:ETF-Allocator/dashboard/src/hooks/useHistory.ts", "target": "file:ETF-Allocator/dashboard/src/types.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/hooks/useHistory.ts", "target": "function:ETF-Allocator/dashboard/src/hooks/useHistory.ts:useHistory", "type": "contains", "weight": 1.0},
+
+    {"source": "file:ETF-Allocator/dashboard/src/hooks/useInvestmentRecords.ts", "target": "file:ETF-Allocator/dashboard/src/types.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/hooks/useInvestmentRecords.ts", "target": "function:ETF-Allocator/dashboard/src/hooks/useInvestmentRecords.ts:useInvestmentRecords", "type": "contains", "weight": 1.0},
+    {"source": "function:ETF-Allocator/dashboard/src/hooks/useInvestmentRecords.ts:useInvestmentRecords", "target": "class:ETF-Allocator/dashboard/src/types.ts:InvestmentRecord", "type": "depends_on", "weight": 0.6},
+
+    {"source": "file:ETF-Allocator/dashboard/src/hooks/useReport.ts", "target": "file:ETF-Allocator/dashboard/src/types.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/hooks/useReport.ts", "target": "function:ETF-Allocator/dashboard/src/hooks/useReport.ts:useReport", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/dashboard/src/hooks/useReport.ts", "target": "function:ETF-Allocator/dashboard/src/hooks/useReport.ts:useSimulate", "type": "contains", "weight": 1.0},
+
+    {"source": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx", "target": "file:ETF-Allocator/dashboard/src/components/ExportPanel.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx", "target": "file:ETF-Allocator/dashboard/src/components/GlassCard.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx", "target": "file:ETF-Allocator/dashboard/src/hooks/useDashboardData.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx", "target": "file:ETF-Allocator/dashboard/src/hooks/useReport.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx", "target": "file:ETF-Allocator/dashboard/src/lib/utils.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx", "target": "file:ETF-Allocator/dashboard/src/types.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx", "target": "file:ETF-Allocator/dashboard/src/widgets/ActivityLogWidget.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx", "target": "file:ETF-Allocator/dashboard/src/widgets/AllocationCardsWidget.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx", "target": "file:ETF-Allocator/dashboard/src/widgets/EquityRingWidget.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx", "target": "file:ETF-Allocator/dashboard/src/widgets/FactorRadarWidget.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx", "target": "file:ETF-Allocator/dashboard/src/widgets/RiskBarWidget.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx", "target": "file:ETF-Allocator/dashboard/src/widgets/ThermometerWidget.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx", "target": "file:ETF-Allocator/dashboard/src/widgets/ValuationChartWidget.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx", "target": "function:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx:AiriDashboard", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx", "target": "function:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx:useValuationHistory", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx", "target": "function:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx:HoldingsInput", "type": "contains", "weight": 1.0},
+    {"source": "function:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx:AiriDashboard", "target": "function:ETF-Allocator/dashboard/src/hooks/useDashboardData.ts:useDashboardData", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx:AiriDashboard", "target": "function:ETF-Allocator/dashboard/src/hooks/useReport.ts:useSimulate", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx:AiriDashboard", "target": "function:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx:useValuationHistory", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx:AiriDashboard", "target": "function:ETF-Allocator/dashboard/src/components/ExportPanel.tsx:ExportPanel", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx:AiriDashboard", "target": "function:ETF-Allocator/dashboard/src/lib/utils.ts:formatLocalDate", "type": "calls", "weight": 0.8},
+
+    {"source": "file:ETF-Allocator/dashboard/src/pages/InvestmentHistory.tsx", "target": "file:ETF-Allocator/dashboard/src/components/GlassCard.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/InvestmentHistory.tsx", "target": "file:ETF-Allocator/dashboard/src/components/Skeleton.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/InvestmentHistory.tsx", "target": "file:ETF-Allocator/dashboard/src/hooks/useInvestmentRecords.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/InvestmentHistory.tsx", "target": "file:ETF-Allocator/dashboard/src/lib/utils.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/InvestmentHistory.tsx", "target": "function:ETF-Allocator/dashboard/src/pages/InvestmentHistory.tsx:InvestmentHistory", "type": "contains", "weight": 1.0},
+    {"source": "function:ETF-Allocator/dashboard/src/pages/InvestmentHistory.tsx:InvestmentHistory", "target": "function:ETF-Allocator/dashboard/src/hooks/useInvestmentRecords.ts:useInvestmentRecords", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/dashboard/src/pages/InvestmentHistory.tsx:InvestmentHistory", "target": "function:ETF-Allocator/dashboard/src/lib/utils.ts:formatLocalDate", "type": "calls", "weight": 0.8},
+
+    {"source": "file:ETF-Allocator/dashboard/src/pages/Trends.tsx", "target": "file:ETF-Allocator/dashboard/src/components/GlassCard.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/Trends.tsx", "target": "file:ETF-Allocator/dashboard/src/components/Skeleton.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/Trends.tsx", "target": "file:ETF-Allocator/dashboard/src/hooks/useHistory.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/Trends.tsx", "target": "file:ETF-Allocator/dashboard/src/types.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/Trends.tsx", "target": "file:ETF-Allocator/dashboard/src/widgets/utils.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/Trends.tsx", "target": "function:ETF-Allocator/dashboard/src/pages/Trends.tsx:Trends", "type": "contains", "weight": 1.0},
+    {"source": "function:ETF-Allocator/dashboard/src/pages/Trends.tsx:Trends", "target": "function:ETF-Allocator/dashboard/src/hooks/useHistory.ts:useHistory", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/dashboard/src/pages/Trends.tsx:Trends", "target": "function:ETF-Allocator/dashboard/src/widgets/utils.ts:historyToPercentileSeries", "type": "calls", "weight": 0.8},
+
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/ActivityLogWidget.tsx", "target": "function:ETF-Allocator/dashboard/src/widgets/ActivityLogWidget.tsx:ActivityLogWidget", "type": "contains", "weight": 1.0},
+
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/AllocationCardsWidget.tsx", "target": "file:ETF-Allocator/dashboard/src/types.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/AllocationCardsWidget.tsx", "target": "function:ETF-Allocator/dashboard/src/widgets/AllocationCardsWidget.tsx:AllocationCardsWidget", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/AllocationCardsWidget.tsx", "target": "function:ETF-Allocator/dashboard/src/widgets/AllocationCardsWidget.tsx:BondProgressCard", "type": "contains", "weight": 1.0},
+    {"source": "function:ETF-Allocator/dashboard/src/widgets/AllocationCardsWidget.tsx:AllocationCardsWidget", "target": "function:ETF-Allocator/dashboard/src/widgets/AllocationCardsWidget.tsx:BondProgressCard", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/dashboard/src/widgets/AllocationCardsWidget.tsx:AllocationCardsWidget", "target": "class:ETF-Allocator/dashboard/src/types.ts:BondStatus", "type": "depends_on", "weight": 0.6},
+
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/EquityRingWidget.tsx", "target": "file:ETF-Allocator/dashboard/src/widgets/utils.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/EquityRingWidget.tsx", "target": "function:ETF-Allocator/dashboard/src/widgets/EquityRingWidget.tsx:EquityRingWidget", "type": "contains", "weight": 1.0},
+    {"source": "function:ETF-Allocator/dashboard/src/widgets/EquityRingWidget.tsx:EquityRingWidget", "target": "function:ETF-Allocator/dashboard/src/widgets/utils.ts:ringColor", "type": "calls", "weight": 0.8},
+
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/FactorRadarWidget.tsx", "target": "function:ETF-Allocator/dashboard/src/widgets/FactorRadarWidget.tsx:FactorRadarWidget", "type": "contains", "weight": 1.0},
+
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/RiskBarWidget.tsx", "target": "file:ETF-Allocator/dashboard/src/components/InfoTip.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/RiskBarWidget.tsx", "target": "file:ETF-Allocator/dashboard/src/components/ProgressBar.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/RiskBarWidget.tsx", "target": "function:ETF-Allocator/dashboard/src/widgets/RiskBarWidget.tsx:RiskBarWidget", "type": "contains", "weight": 1.0},
+    {"source": "function:ETF-Allocator/dashboard/src/widgets/RiskBarWidget.tsx:RiskBarWidget", "target": "function:ETF-Allocator/dashboard/src/components/ProgressBar.tsx:ProgressBar", "type": "calls", "weight": 0.8},
+
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/ThermometerWidget.tsx", "target": "file:ETF-Allocator/dashboard/src/components/InfoTip.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/ThermometerWidget.tsx", "target": "file:ETF-Allocator/dashboard/src/widgets/utils.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/ThermometerWidget.tsx", "target": "function:ETF-Allocator/dashboard/src/widgets/ThermometerWidget.tsx:ThermometerWidget", "type": "contains", "weight": 1.0},
+    {"source": "function:ETF-Allocator/dashboard/src/widgets/ThermometerWidget.tsx:ThermometerWidget", "target": "function:ETF-Allocator/dashboard/src/widgets/utils.ts:zoneFor", "type": "calls", "weight": 0.8},
+
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/ValuationChartWidget.tsx", "target": "file:ETF-Allocator/dashboard/src/components/InfoTip.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/ValuationChartWidget.tsx", "target": "function:ETF-Allocator/dashboard/src/widgets/ValuationChartWidget.tsx:ValuationChartWidget", "type": "contains", "weight": 1.0},
+
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/registry.ts", "target": "file:ETF-Allocator/dashboard/src/widgets/ActivityLogWidget.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/registry.ts", "target": "file:ETF-Allocator/dashboard/src/widgets/AllocationCardsWidget.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/registry.ts", "target": "file:ETF-Allocator/dashboard/src/widgets/EquityRingWidget.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/registry.ts", "target": "file:ETF-Allocator/dashboard/src/widgets/FactorRadarWidget.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/registry.ts", "target": "file:ETF-Allocator/dashboard/src/widgets/RiskBarWidget.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/registry.ts", "target": "file:ETF-Allocator/dashboard/src/widgets/ThermometerWidget.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/registry.ts", "target": "file:ETF-Allocator/dashboard/src/widgets/ValuationChartWidget.tsx", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/registry.ts", "target": "file:ETF-Allocator/dashboard/src/components/layout/GridDashboard.tsx", "type": "configures", "weight": 0.6},
+
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/utils.test.ts", "target": "file:ETF-Allocator/dashboard/src/widgets/utils.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/utils.ts", "target": "file:ETF-Allocator/dashboard/src/widgets/utils.test.ts", "type": "tested_by", "weight": 0.5},
+
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/utils.ts", "target": "function:ETF-Allocator/dashboard/src/widgets/utils.ts:zoneFor", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/utils.ts", "target": "function:ETF-Allocator/dashboard/src/widgets/utils.ts:historyToPercentileSeries", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/dashboard/src/widgets/utils.ts", "target": "function:ETF-Allocator/dashboard/src/widgets/utils.ts:ringColor", "type": "contains", "weight": 1.0}
+  ]
+}

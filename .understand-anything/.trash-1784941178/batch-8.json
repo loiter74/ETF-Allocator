@@ -1,0 +1,106 @@
+{
+  "batchIndex": 8,
+  "nodes": [
+    {
+      "id": "document:ETF-Allocator/dashboard/AGENTS.md",
+      "type": "document",
+      "name": "AGENTS.md",
+      "filePath": "ETF-Allocator/dashboard/AGENTS.md",
+      "summary": "Dashboard 前端的 Agent 工作指南，描述项目结构（src 下 pages/widgets/components/hooks/contexts/design-system/lib 等目录）、关键约定（Widget 通过 registry.ts 动态注册、API 调用统一走 hooks、Tailwind 4 utility-first、Vite 代理 /api → localhost:8000）以及反模式与常用命令（npm run dev/start/build/lint、vitest、Playwright E2E）。技术栈：React 19、TypeScript 6、Vite 8、Tailwind 4、Recharts、Framer Motion。",
+      "tags": ["document", "guide", "frontend", "conventions", "structure", "AGENTS"],
+      "complexity": "simple",
+      "language": "markdown"
+    },
+    {
+      "id": "document:ETF-Allocator/dashboard/README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "ETF-Allocator/dashboard/README.md",
+      "summary": "Vite 官方 React + TypeScript 模板自带的 README，介绍 @vitejs/plugin-react（基于 Oxc）与 plugin-react-swc（基于 SWC）两个插件，并说明 React Compiler 默认未启用，以及如何扩展 ESLint 配置以启用 type-aware 规则（tseslint.configs.recommendedTypeChecked、eslint-plugin-react-x、eslint-plugin-react-dom）。属于模板说明，未涉及业务逻辑。",
+      "tags": ["document", "readme", "template", "Vite", "ESLint"],
+      "complexity": "simple",
+      "language": "markdown"
+    },
+    {
+      "id": "config:ETF-Allocator/dashboard/components.json",
+      "type": "config",
+      "name": "components.json",
+      "filePath": "ETF-Allocator/dashboard/components.json",
+      "summary": "shadcn/ui 配置文件，采用 new-york 风格，非 RSC，TSX，图标库 lucide。Tailwind 指向 src/index.css（baseColor neutral，启用 cssVariables）。路径别名：@/components、@/lib/utils、@/components/ui、@/lib、@/hooks。",
+      "tags": ["config", "shadcn", "ui", "tailwind", "aliases"],
+      "complexity": "simple",
+      "language": "json"
+    },
+    {
+      "id": "config:ETF-Allocator/dashboard/package.json",
+      "type": "config",
+      "name": "package.json",
+      "filePath": "ETF-Allocator/dashboard/package.json",
+      "summary": "Dashboard npm 清单（ESM，private）。关键依赖：React 19.2、react-dom 19.2、react-router-dom 7.16、recharts 3.8、framer-motion 12.40、tailwindcss 4.3（@tailwindcss/vite）、@nivo/treemap 0.99、react-grid-layout 2.2、lucide-react、sonner、katex、clsx、tailwind-merge。devDeps：Vite 8.0、@vitejs/plugin-react 6、TypeScript 6.0、vitest 4.1、ESLint 10、@testing-library/react 16、jsdom 29、concurrently 10。scripts：dev（vite，:5173）、start（concurrently 同时拉起 FastAPI :8000 与 UI :5173）、build（tsc -b && vite build）、lint、preview。",
+      "tags": ["config", "npm", "manifest", "frontend", "React19", "Vite8", "Tailwind4", "Recharts", "FramerMotion", "ReactRouter7"],
+      "complexity": "moderate",
+      "language": "json"
+    },
+    {
+      "id": "config:ETF-Allocator/dashboard/tsconfig.app.json",
+      "type": "config",
+      "name": "tsconfig.app.json",
+      "filePath": "ETF-Allocator/dashboard/tsconfig.app.json",
+      "summary": "应用代码的 TypeScript 编译配置，target ES2023，lib ES2023+DOM，module esnext，moduleResolution bundler，jsx react-jsx，noEmit（由 Vite 打包）。开启 noUnusedLocals/noUnusedParameters/verbatimModuleSyntax/erasableSyntaxOnly 等严格项。路径别名 @/* → src/*，types 含 vite/client。include src，排除 src/pages/_archive。",
+      "tags": ["config", "TypeScript", "tsconfig", "app", "strict"],
+      "complexity": "simple",
+      "language": "json"
+    },
+    {
+      "id": "config:ETF-Allocator/dashboard/tsconfig.json",
+      "type": "config",
+      "name": "tsconfig.json",
+      "filePath": "ETF-Allocator/dashboard/tsconfig.json",
+      "summary": "根 tsconfig，采用 project references 模式：files 为空，references 指向 ./tsconfig.app.json（应用代码）与 ./tsconfig.node.json（Node 端，如 vite.config.ts），配合 tsc -b 进行增量构建。",
+      "tags": ["config", "TypeScript", "tsconfig", "root", "project-references"],
+      "complexity": "simple",
+      "language": "json"
+    },
+    {
+      "id": "config:ETF-Allocator/dashboard/tsconfig.node.json",
+      "type": "config",
+      "name": "tsconfig.node.json",
+      "filePath": "ETF-Allocator/dashboard/tsconfig.node.json",
+      "summary": "Node 端 TypeScript 编译配置，target ES2023，lib ES2023，types 仅 node，moduleResolution bundler，noEmit。开启与 tsconfig.app.json 一致的严格 lint 选项（noUnusedLocals/Parameters、verbatimModuleSyntax、erasableSyntaxOnly、noFallthroughCasesInSwitch）。include 仅 vite.config.ts。",
+      "tags": ["config", "TypeScript", "tsconfig", "node", "vite"],
+      "complexity": "simple",
+      "language": "json"
+    }
+  ],
+  "edges": [
+    {"source": "config:ETF-Allocator/dashboard/package.json", "target": "file:ETF-Allocator/dashboard/src/main.tsx", "type": "configures", "weight": 0.6},
+    {"source": "config:ETF-Allocator/dashboard/package.json", "target": "file:ETF-Allocator/dashboard/src/App.tsx", "type": "configures", "weight": 0.6},
+    {"source": "config:ETF-Allocator/dashboard/tsconfig.app.json", "target": "file:ETF-Allocator/dashboard/src/App.tsx", "type": "configures", "weight": 0.6},
+    {"source": "config:ETF-Allocator/dashboard/tsconfig.app.json", "target": "file:ETF-Allocator/dashboard/src/main.tsx", "type": "configures", "weight": 0.6},
+    {"source": "config:ETF-Allocator/dashboard/tsconfig.node.json", "target": "file:ETF-Allocator/dashboard/vite.config.ts", "type": "configures", "weight": 0.6},
+    {"source": "config:ETF-Allocator/dashboard/components.json", "target": "file:ETF-Allocator/dashboard/src/index.css", "type": "configures", "weight": 0.6},
+    {"source": "config:ETF-Allocator/dashboard/components.json", "target": "file:ETF-Allocator/dashboard/src/lib/utils.ts", "type": "configures", "weight": 0.5},
+    {"source": "config:ETF-Allocator/dashboard/tsconfig.json", "target": "config:ETF-Allocator/dashboard/tsconfig.app.json", "type": "references", "weight": 0.6},
+    {"source": "config:ETF-Allocator/dashboard/tsconfig.json", "target": "config:ETF-Allocator/dashboard/tsconfig.node.json", "type": "references", "weight": 0.6},
+    {"source": "config:ETF-Allocator/dashboard/tsconfig.app.json", "target": "config:ETF-Allocator/dashboard/tsconfig.json", "type": "depends_on", "weight": 0.6},
+    {"source": "config:ETF-Allocator/dashboard/tsconfig.node.json", "target": "config:ETF-Allocator/dashboard/tsconfig.json", "type": "depends_on", "weight": 0.6},
+    {"source": "config:ETF-Allocator/dashboard/package.json", "target": "config:ETF-Allocator/dashboard/tsconfig.json", "type": "related", "weight": 0.5},
+    {"source": "config:ETF-Allocator/dashboard/package.json", "target": "config:ETF-Allocator/dashboard/components.json", "type": "related", "weight": 0.5},
+    {"source": "document:ETF-Allocator/dashboard/AGENTS.md", "target": "file:ETF-Allocator/dashboard/src/App.tsx", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/dashboard/AGENTS.md", "target": "file:ETF-Allocator/dashboard/src/main.tsx", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/dashboard/AGENTS.md", "target": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/dashboard/AGENTS.md", "target": "file:ETF-Allocator/dashboard/src/widgets/registry.ts", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/dashboard/AGENTS.md", "target": "file:ETF-Allocator/dashboard/src/hooks/useReport.ts", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/dashboard/AGENTS.md", "target": "file:ETF-Allocator/dashboard/src/hooks/useHistory.ts", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/dashboard/AGENTS.md", "target": "file:ETF-Allocator/dashboard/src/design-system/theme.ts", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/dashboard/AGENTS.md", "target": "file:ETF-Allocator/dashboard/src/contexts/ThemeContext.tsx", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/dashboard/AGENTS.md", "target": "file:ETF-Allocator/dashboard/src/types.ts", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/dashboard/AGENTS.md", "target": "file:ETF-Allocator/dashboard/src/lib/utils.ts", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/dashboard/AGENTS.md", "target": "file:ETF-Allocator/dashboard/src/index.css", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/dashboard/AGENTS.md", "target": "config:ETF-Allocator/dashboard/package.json", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/dashboard/AGENTS.md", "target": "config:ETF-Allocator/dashboard/components.json", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/dashboard/README.md", "target": "config:ETF-Allocator/dashboard/package.json", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/dashboard/README.md", "target": "config:ETF-Allocator/dashboard/tsconfig.node.json", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/dashboard/README.md", "target": "config:ETF-Allocator/dashboard/tsconfig.app.json", "type": "documents", "weight": 0.5}
+  ]
+}

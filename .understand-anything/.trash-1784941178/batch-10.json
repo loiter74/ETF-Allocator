@@ -1,0 +1,437 @@
+{
+  "batchIndex": 10,
+  "nodes": [
+    {
+      "id": "file:ETF-Allocator/src/backtest/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "ETF-Allocator/src/backtest/__init__.py",
+      "summary": "backtest 包标记文件，空文件。回测引擎子模块（engine.py、splitter.py）的入口。",
+      "tags": ["package-marker", "backtest", "empty"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "document:ETF-Allocator/src/backtest/AGENTS.md",
+      "type": "document",
+      "name": "AGENTS.md",
+      "filePath": "ETF-Allocator/src/backtest/AGENTS.md",
+      "summary": "回测引擎（流B）agent 指引。说明 Point-in-time 月度回放与训练/测试分离验证。涵盖结构（engine.py 的 run_backtest、splitter.py 的 split_by_date）、查询入口（compute_metrics 计算年化收益/最大回撤/Calmar/夏普）、关键约定（point-in-time 约束 publish_date≤T、expanding window 防未来泄漏、月度决策、回填段控制 exclude_backfill）以及反模式（不在测试期调参、Calmar<0.5 需重评、000985 无数据时 fallback 沪深300 PE）。",
+      "tags": ["agent-guide", "backtest", "point-in-time", "expanding-window"],
+      "complexity": "simple",
+      "language": "markdown"
+    },
+    {
+      "id": "file:ETF-Allocator/src/constraints/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "ETF-Allocator/src/constraints/__init__.py",
+      "summary": "constraints 包标记文件，空文件。组合约束子模块（如组别上限、单资产上限）的入口。",
+      "tags": ["package-marker", "constraints", "empty"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/src/datasource/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "ETF-Allocator/src/datasource/__init__.py",
+      "summary": "datasource 包标记文件，空文件。AkShare 数据适配器子模块的入口。",
+      "tags": ["package-marker", "datasource", "empty"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/src/factors/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "ETF-Allocator/src/factors/__init__.py",
+      "summary": "factors 包标记文件，空文件。因子计算子模块（value/dividend/momentum/risk）的入口。",
+      "tags": ["package-marker", "factors", "empty"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "document:ETF-Allocator/src/factors/AGENTS.md",
+      "type": "document",
+      "name": "AGENTS.md",
+      "filePath": "ETF-Allocator/src/factors/AGENTS.md",
+      "summary": "因子计算模块 agent 指引。说明 5 个子模块：value.py（pe_percentile/pb_percentile expanding window 分位）、dividend.py（dividend_yield_percentile 反向：越高越好）、momentum.py（momentum_120d、ma_trend_200d、kechuang_opportunity）、risk.py（annualized_volatility、max_drawdown 不进评分）。约定：_expand_truncate 截断近 N 年不足 1 年返回 None、expanding_percentile 用 rank/(n-1)、数据不足返回 None 由 scoring/engine.py 跳过、股息率方向与 PE 相反、动量先算收益率再算分位。反模式：不直接用全历史、不硬编码资产（窗口从 config.settings 读）、趋势开关 OFF 减半而非归零。",
+      "tags": ["agent-guide", "factors", "expanding-window", "防未来函数"],
+      "complexity": "simple",
+      "language": "markdown"
+    },
+    {
+      "id": "file:ETF-Allocator/src/rebalance/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "ETF-Allocator/src/rebalance/__init__.py",
+      "summary": "rebalance 包标记文件，空文件。年度再平衡检查（checker.py）子模块的入口。",
+      "tags": ["package-marker", "rebalance", "empty"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/src/regime/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "ETF-Allocator/src/regime/__init__.py",
+      "summary": "regime 包标记文件，空文件。市场温度计子模块（thermometer.py）的入口。",
+      "tags": ["package-marker", "regime", "empty"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/src/reports/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "ETF-Allocator/src/reports/__init__.py",
+      "summary": "reports 包标记文件，空文件。月报生成子模块（monthly.py）的入口。",
+      "tags": ["package-marker", "reports", "empty"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/src/risk/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "ETF-Allocator/src/risk/__init__.py",
+      "summary": "risk 包标记文件，空文件。风险控制子模块（controller.py 波动率→仓位上限）的入口。",
+      "tags": ["package-marker", "risk", "empty"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/src/scoring/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "ETF-Allocator/src/scoring/__init__.py",
+      "summary": "scoring 包标记文件，空文件。评分引擎子模块（engine.py 因子→[0,1] 机会分）的入口。",
+      "tags": ["package-marker", "scoring", "empty"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/src/store/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "ETF-Allocator/src/store/__init__.py",
+      "summary": "store 包标记文件，空文件。SQLite 持久化子模块（schema.py、validator.py）的入口。",
+      "tags": ["package-marker", "store", "empty"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/start.py",
+      "type": "file",
+      "name": "start.py",
+      "filePath": "ETF-Allocator/start.py",
+      "summary": "一键启动脚本：清理 8000/5173 端口占用 → 启动 FastAPI 后端（uvicorn src.api.server:app）→ 等待就绪 → 启动 Vite 前端（dashboard 下 npm run dev）→ 打开浏览器 → 进入日志循环（任一进程退出则终止另一个）。Windows 下处理 node/npm PATH 与 .cmd 后缀，并用 errors='replace' 处理终端编码问题。",
+      "tags": ["launcher", "fastapi", "vite", "subprocess", "windows"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/start.py:kill_on_port",
+      "type": "function",
+      "name": "kill_on_port",
+      "filePath": "ETF-Allocator/start.py",
+      "summary": "Windows 下用 netstat+findstr 找到占用指定端口的 LISTENING 进程，taskkill //F //PID 强杀；去重避免重复 kill。",
+      "tags": ["port-cleanup", "windows", "netstat"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/start.py:is_port_free",
+      "type": "function",
+      "name": "is_port_free",
+      "filePath": "ETF-Allocator/start.py",
+      "summary": "尝试 bind 127.0.0.1:port 判断端口是否空闲，捕获 OSError 返回布尔值。",
+      "tags": ["port-check", "socket"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/tests/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "ETF-Allocator/tests/__init__.py",
+      "summary": "tests 包标记文件，空文件。测试根包入口。",
+      "tags": ["package-marker", "tests", "empty"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "document:ETF-Allocator/tests/AGENTS.md",
+      "type": "document",
+      "name": "AGENTS.md",
+      "filePath": "ETF-Allocator/tests/AGENTS.md",
+      "summary": "测试模块 agent 指引。pytest 体系：14 个单元测试文件 + 1 个 integration 占位。结构涵盖 conftest.py（sys.path 设置）、unit/ 下 test_config/test_store/test_datasource/test_factors/test_scoring/test_regime/test_risk/test_constraints（最大 214 行）/test_allocation、integration/ 占位。约定：integration 与 slow 自定义 marker、conftest 只做 sys.path 不做 fixture（实际由 fixtures/data.py 提供）、测试中使用中文资产名（白酒ETF 等）。反模式：不让测试依赖外网、涉及温度计/风险恢复的测试需 reset_persistence/reset_recovery_tracking。",
+      "tags": ["agent-guide", "tests", "pytest"],
+      "complexity": "simple",
+      "language": "markdown"
+    },
+    {
+      "id": "file:ETF-Allocator/tests/conftest.py",
+      "type": "file",
+      "name": "conftest.py",
+      "filePath": "ETF-Allocator/tests/conftest.py",
+      "summary": "pytest 全局配置。将项目根加入 sys.path；通过 pytest_plugins 注册 tests.fixtures.data 共享 fixtures；pytest_configure 注册 integration/slow marker；提供 autouse fixture _auto_reset_stateful_modules 在每个测试后调用 src.regime.thermometer.reset_persistence 与 src.risk.controller.reset_recovery_tracking，防止温度计 _last_equity_ratio 与波动率 _low_vol_days 模块级状态跨测试污染。",
+      "tags": ["pytest", "conftest", "test-isolation", "global-state-reset"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/tests/conftest.py:pytest_configure",
+      "type": "function",
+      "name": "pytest_configure",
+      "filePath": "ETF-Allocator/tests/conftest.py",
+      "summary": "注册自定义 pytest markers：integration（需网络/AkShare）与 slow（>1 秒）。",
+      "tags": ["pytest", "markers"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/tests/conftest.py:_auto_reset_stateful_modules",
+      "type": "function",
+      "name": "_auto_reset_stateful_modules",
+      "filePath": "ETF-Allocator/tests/conftest.py",
+      "summary": "autouse pytest fixture，yield 后调用 reset_persistence() 与 reset_recovery_tracking()，重置温度计与风险恢复的模块级全局变量，避免测试间交叉污染。",
+      "tags": ["pytest-fixture", "autouse", "test-isolation"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/tests/fixtures/data.py",
+      "type": "file",
+      "name": "data.py",
+      "filePath": "ETF-Allocator/tests/fixtures/data.py",
+      "summary": "共享测试数据 fixtures，集中管理 16 个测试文件共用的数据构造函数，消除重复，且不依赖外部网络或真实数据库。提供 memory_db（内存 SQLite，调用 src.store.schema.create_tables 建表）、sample_prices（300 天 B 频价格序列 100→~150，含趋势项，足够算 120 日动量/200 日均线/60 日波动率）、sample_valuations（PE/PB/股息率三元组，PE 与 PB 正相关、与股息率负相关，贴近真实市场范围）、standard_weights（6 资产权重和=1）、standard_scores（6 资产机会分，国债为 None）。",
+      "tags": ["tests", "fixtures", "test-data", "shared"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/tests/fixtures/data.py:memory_db",
+      "type": "function",
+      "name": "memory_db",
+      "filePath": "ETF-Allocator/tests/fixtures/data.py",
+      "summary": "function-scope fixture：创建 :memory: SQLite 连接，row_factory=Row，调用 src.store.schema.create_tables 建表，yield 后关闭。每个测试独立隔离。",
+      "tags": ["fixture", "sqlite", "in-memory"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/tests/fixtures/data.py:sample_prices",
+      "type": "function",
+      "name": "sample_prices",
+      "filePath": "ETF-Allocator/tests/fixtures/data.py",
+      "summary": "function-scope fixture：np.random.seed(42) 生成 300 天 B 频价格序列，日收益 N(0.0005,0.015) 累积后乘线性趋势 1.0→1.3，最终约 100→150，满足动量/均线/波动率计算窗口需求。",
+      "tags": ["fixture", "price-series", "synthetic-data"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/tests/fixtures/data.py:sample_valuations",
+      "type": "function",
+      "name": "sample_valuations",
+      "filePath": "ETF-Allocator/tests/fixtures/data.py",
+      "summary": "function-scope fixture：返回 (pe_series, pb_series, dy_series)。PE 围绕 15 随机游走 clip[10,30]；PB=1.2+(PE-15)*0.05+噪声 clip[0.8,2.0]；股息率=4.5-(PE-15)*0.15+噪声 clip[2,5]，三者保持合理相关性。",
+      "tags": ["fixture", "valuation-series", "synthetic-data"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/tests/fixtures/data.py:standard_weights",
+      "type": "function",
+      "name": "standard_weights",
+      "filePath": "ETF-Allocator/tests/fixtures/data.py",
+      "summary": "function-scope fixture：返回 6 资产标准权重 dict（白酒12%、银行18%、红利8%、沪深300 22%、科创50 13%、国债27%），总和=1.0。",
+      "tags": ["fixture", "weights", "test-data"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/tests/fixtures/data.py:standard_scores",
+      "type": "function",
+      "name": "standard_scores",
+      "filePath": "ETF-Allocator/tests/fixtures/data.py",
+      "summary": "function-scope fixture：返回 6 资产机会分 dict（白酒0.85、银行0.88、红利0.80、沪深300 0.78、科创50 0.92、国债 None）。",
+      "tags": ["fixture", "opportunity-score", "test-data"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/tests/integration/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "ETF-Allocator/tests/integration/__init__.py",
+      "summary": "integration 测试包标记文件，空文件。集成测试子包入口。",
+      "tags": ["package-marker", "tests", "integration", "empty"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/tests/integration/test_api.py",
+      "type": "file",
+      "name": "test_api.py",
+      "filePath": "ETF-Allocator/tests/integration/test_api.py",
+      "summary": "API 集成测试（@pytest.mark.integration），需后端已启动 uvicorn src.api.server:app --port 8000。TestAPIEndpoints 覆盖 GET /api/report（200、schema 字段 market_temp/portfolio_risk/allocations、股债和=1、组别上限 value60%/growth15%）、POST /api/report（200、before/after 权重和=1、new_total=new_money+total_assets）、GET /api/history（000300 pe 数据非空、unsupported field available=False）、Bug2 防护 status 必须在 {cool,mild_cool,strong_cool,overheat,frozen}。TestDashboardBuild 跑 npx tsc --noEmit 与 npx vite build。check_server fixture 在 API 不在线时 skip。",
+      "tags": ["tests", "integration", "api", "fastapi", "http"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/tests/integration/test_api.py:_api_alive",
+      "type": "function",
+      "name": "_api_alive",
+      "filePath": "ETF-Allocator/tests/integration/test_api.py",
+      "summary": "辅助函数：GET /api/report 5s 超时探测后端是否存活，返回状态码==200 的布尔值，用于测试 skip 判定。",
+      "tags": ["helper", "api-probe"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "class:ETF-Allocator/tests/integration/test_api.py:TestAPIEndpoints",
+      "type": "class",
+      "name": "TestAPIEndpoints",
+      "filePath": "ETF-Allocator/tests/integration/test_api.py",
+      "summary": "API 三端点基础功能测试类。autouse check_server fixture 在后端未运行时 skip 全部用例。验证 GET /api/report 的 schema、股债和、组别上限；POST /api/report 的 before/after 权重和与 new_total；GET /api/history 数据格式与不支持字段；以及 market_temp.status 必须是前端 lookup 已知值（Bug2 防护）。",
+      "tags": ["test-class", "integration", "api-contract"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "class:ETF-Allocator/tests/integration/test_api.py:TestDashboardBuild",
+      "type": "class",
+      "name": "TestDashboardBuild",
+      "filePath": "ETF-Allocator/tests/integration/test_api.py",
+      "summary": "前端构建测试类。node_modules 不存在时 skip；否则运行 npx tsc --noEmit 与 npx vite build，断言 returncode==0，失败时打印尾部日志。",
+      "tags": ["test-class", "integration", "frontend-build", "tsc", "vite"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/tests/unit/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "ETF-Allocator/tests/unit/__init__.py",
+      "summary": "unit 测试包标记文件，空文件。单元测试子包入口。",
+      "tags": ["package-marker", "tests", "unit", "empty"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/tests/unit/test_factors_bank.py",
+      "type": "file",
+      "name": "test_factors_bank.py",
+      "filePath": "ETF-Allocator/tests/unit/test_factors_bank.py",
+      "summary": "银行 ETF 复合因子与科创50 趋势开关单元测试。TestBankComposite 验证 config.settings.FACTOR_WEIGHTS['银行ETF'] 同时含 pb_percentile 与 dividend_percentile（双因子等权，区别于白酒只用 PE），权重和=1。TestKeChuangTrend 验证 FACTOR_WEIGHTS['科创50ETF'] 含 momentum_percentile，且趋势乘数只能取 1.0(ON)/0.5(OFF)。",
+      "tags": ["tests", "unit", "factors", "bank", "kechuang"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "class:ETF-Allocator/tests/unit/test_factors_bank.py:TestBankComposite",
+      "type": "class",
+      "name": "TestBankComposite",
+      "filePath": "ETF-Allocator/tests/unit/test_factors_bank.py",
+      "summary": "银行 ETF 使用 PB + 股息率双因子的结构验证。断言 FACTOR_WEIGHTS['银行ETF'] 含 pb_percentile 与 dividend_percentile 且权重和为 1。",
+      "tags": ["test-class", "unit", "bank", "composite-factor"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "class:ETF-Allocator/tests/unit/test_factors_bank.py:TestKeChuangTrend",
+      "type": "class",
+      "name": "TestKeChuangTrend",
+      "filePath": "ETF-Allocator/tests/unit/test_factors_bank.py",
+      "summary": "科创50 趋势开关因子验证。断言 FACTOR_WEIGHTS['科创50ETF'] 含 momentum_percentile，且趋势乘数仅 1.0/0.5 两种取值。",
+      "tags": ["test-class", "unit", "kechuang", "trend-switch"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/tests/unit/test_scoring_sigmoid.py",
+      "type": "file",
+      "name": "test_scoring_sigmoid.py",
+      "filePath": "ETF-Allocator/tests/unit/test_scoring_sigmoid.py",
+      "summary": "评分层 sigmoid 映射单元测试。内嵌 _sigmoid(x)=1/(1+exp(-x))。TestSigmoid 验证：sigmoid(0)=0.5、大正值趋 1、大负值趋 0、对称性 sigmoid(-x)=1-sigmoid(x)、单调递增、输出严格在 (0,1) 开区间。确保 z-score 到机会分的映射符合预期。",
+      "tags": ["tests", "unit", "scoring", "sigmoid", "math"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/tests/unit/test_scoring_sigmoid.py:_sigmoid",
+      "type": "function",
+      "name": "_sigmoid",
+      "filePath": "ETF-Allocator/tests/unit/test_scoring_sigmoid.py",
+      "summary": "测试内嵌的 sigmoid 实现：1/(1+exp(-x))，用于验证评分层映射性质。",
+      "tags": ["helper", "sigmoid", "math"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "class:ETF-Allocator/tests/unit/test_scoring_sigmoid.py:TestSigmoid",
+      "type": "class",
+      "name": "TestSigmoid",
+      "filePath": "ETF-Allocator/tests/unit/test_scoring_sigmoid.py",
+      "summary": "sigmoid 数学性质测试类：零点半值、极限趋近、对称性、单调递增、值域严格 (0,1)。",
+      "tags": ["test-class", "unit", "sigmoid", "math-properties"],
+      "complexity": "simple",
+      "language": "python"
+    }
+  ],
+  "edges": [
+    {"source": "file:ETF-Allocator/start.py", "target": "function:ETF-Allocator/start.py:kill_on_port", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/start.py", "target": "function:ETF-Allocator/start.py:is_port_free", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/start.py", "target": "function:ETF-Allocator/start.py:kill_on_port", "type": "calls", "weight": 0.8},
+    {"source": "file:ETF-Allocator/start.py", "target": "function:ETF-Allocator/start.py:is_port_free", "type": "calls", "weight": 0.8},
+
+    {"source": "file:ETF-Allocator/tests/conftest.py", "target": "function:ETF-Allocator/tests/conftest.py:pytest_configure", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/conftest.py", "target": "function:ETF-Allocator/tests/conftest.py:_auto_reset_stateful_modules", "type": "contains", "weight": 1.0},
+    {"source": "function:ETF-Allocator/tests/conftest.py:_auto_reset_stateful_modules", "target": "file:ETF-Allocator/src/regime/thermometer.py", "type": "depends_on", "weight": 0.6},
+    {"source": "function:ETF-Allocator/tests/conftest.py:_auto_reset_stateful_modules", "target": "file:ETF-Allocator/src/risk/controller.py", "type": "depends_on", "weight": 0.6},
+
+    {"source": "file:ETF-Allocator/tests/fixtures/data.py", "target": "function:ETF-Allocator/tests/fixtures/data.py:memory_db", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/fixtures/data.py", "target": "function:ETF-Allocator/tests/fixtures/data.py:sample_prices", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/fixtures/data.py", "target": "function:ETF-Allocator/tests/fixtures/data.py:sample_valuations", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/fixtures/data.py", "target": "function:ETF-Allocator/tests/fixtures/data.py:standard_weights", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/fixtures/data.py", "target": "function:ETF-Allocator/tests/fixtures/data.py:standard_scores", "type": "contains", "weight": 1.0},
+    {"source": "function:ETF-Allocator/tests/fixtures/data.py:memory_db", "target": "file:ETF-Allocator/src/store/schema.py", "type": "depends_on", "weight": 0.6},
+
+    {"source": "file:ETF-Allocator/tests/integration/test_api.py", "target": "function:ETF-Allocator/tests/integration/test_api.py:_api_alive", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/integration/test_api.py", "target": "class:ETF-Allocator/tests/integration/test_api.py:TestAPIEndpoints", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/integration/test_api.py", "target": "class:ETF-Allocator/tests/integration/test_api.py:TestDashboardBuild", "type": "contains", "weight": 1.0},
+    {"source": "class:ETF-Allocator/tests/integration/test_api.py:TestAPIEndpoints", "target": "function:ETF-Allocator/tests/integration/test_api.py:_api_alive", "type": "calls", "weight": 0.8},
+    {"source": "file:ETF-Allocator/tests/integration/test_api.py", "target": "file:ETF-Allocator/src/api/server.py", "type": "tested_by", "weight": 0.5},
+
+    {"source": "file:ETF-Allocator/tests/unit/test_factors_bank.py", "target": "class:ETF-Allocator/tests/unit/test_factors_bank.py:TestBankComposite", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/unit/test_factors_bank.py", "target": "class:ETF-Allocator/tests/unit/test_factors_bank.py:TestKeChuangTrend", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/unit/test_factors_bank.py", "target": "file:ETF-Allocator/config/settings.py", "type": "depends_on", "weight": 0.6},
+    {"source": "class:ETF-Allocator/tests/unit/test_factors_bank.py:TestBankComposite", "target": "file:ETF-Allocator/src/factors/value.py", "type": "tested_by", "weight": 0.5},
+    {"source": "class:ETF-Allocator/tests/unit/test_factors_bank.py:TestBankComposite", "target": "file:ETF-Allocator/src/factors/dividend.py", "type": "tested_by", "weight": 0.5},
+    {"source": "class:ETF-Allocator/tests/unit/test_factors_bank.py:TestKeChuangTrend", "target": "file:ETF-Allocator/src/factors/momentum.py", "type": "tested_by", "weight": 0.5},
+
+    {"source": "file:ETF-Allocator/tests/unit/test_scoring_sigmoid.py", "target": "function:ETF-Allocator/tests/unit/test_scoring_sigmoid.py:_sigmoid", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/unit/test_scoring_sigmoid.py", "target": "class:ETF-Allocator/tests/unit/test_scoring_sigmoid.py:TestSigmoid", "type": "contains", "weight": 1.0},
+    {"source": "class:ETF-Allocator/tests/unit/test_scoring_sigmoid.py:TestSigmoid", "target": "function:ETF-Allocator/tests/unit/test_scoring_sigmoid.py:_sigmoid", "type": "calls", "weight": 0.8},
+    {"source": "file:ETF-Allocator/tests/unit/test_scoring_sigmoid.py", "target": "file:ETF-Allocator/src/scoring/engine.py", "type": "tested_by", "weight": 0.5},
+
+    {"source": "document:ETF-Allocator/src/backtest/AGENTS.md", "target": "file:ETF-Allocator/src/backtest/engine.py", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/src/backtest/AGENTS.md", "target": "file:ETF-Allocator/src/backtest/splitter.py", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/src/backtest/AGENTS.md", "target": "file:ETF-Allocator/src/backtest/__init__.py", "type": "documents", "weight": 0.5},
+
+    {"source": "document:ETF-Allocator/src/factors/AGENTS.md", "target": "file:ETF-Allocator/src/factors/value.py", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/src/factors/AGENTS.md", "target": "file:ETF-Allocator/src/factors/dividend.py", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/src/factors/AGENTS.md", "target": "file:ETF-Allocator/src/factors/momentum.py", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/src/factors/AGENTS.md", "target": "file:ETF-Allocator/src/factors/risk.py", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/src/factors/AGENTS.md", "target": "file:ETF-Allocator/src/factors/__init__.py", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/src/factors/AGENTS.md", "target": "file:ETF-Allocator/src/scoring/engine.py", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/src/factors/AGENTS.md", "target": "file:ETF-Allocator/config/settings.py", "type": "documents", "weight": 0.5},
+
+    {"source": "document:ETF-Allocator/tests/AGENTS.md", "target": "file:ETF-Allocator/tests/conftest.py", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/tests/AGENTS.md", "target": "file:ETF-Allocator/tests/fixtures/data.py", "type": "documents", "weight": 0.5},
+    {"source": "document:ETF-Allocator/tests/AGENTS.md", "target": "file:ETF-Allocator/tests/integration/__init__.py", "type": "documents", "weight": 0.5}
+  ]
+}

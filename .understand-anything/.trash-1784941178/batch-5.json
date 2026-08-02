@@ -1,0 +1,207 @@
+{
+  "batchIndex": 5,
+  "nodes": [
+    {
+      "id": "file:ETF-Allocator/dashboard/src/components/layout/ThemeSwitcher.tsx",
+      "type": "file",
+      "name": "ThemeSwitcher.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/components/layout/ThemeSwitcher.tsx",
+      "summary": "主题切换按钮组件，固定悬浮于页面右上角，用户点击即可在亮色与暗色模式之间切换。通过调用 useTheme hook 获取当前模式与 toggleMode 方法，并依据模式渲染对应太阳/月亮 emoji。",
+      "tags": ["React 组件", "主题", "切换按钮", "UI"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/components/layout/ThemeSwitcher.tsx:ThemeSwitcher",
+      "type": "function",
+      "name": "ThemeSwitcher",
+      "filePath": "ETF-Allocator/dashboard/src/components/layout/ThemeSwitcher.tsx",
+      "summary": "主题切换按钮组件。调用 useTheme 读取 mode 与 toggleMode，渲染一个固定定位的圆形按钮，根据当前模式展示亮/暗对应的图标与标题提示。",
+      "tags": ["React 组件", "主题切换"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/contexts/ThemeContext.tsx",
+      "type": "file",
+      "name": "ThemeContext.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/contexts/ThemeContext.tsx",
+      "summary": "主题系统的 Provider 实现，负责持有 theme（颜色主题）与 mode（亮/暗模式）两套状态。setTheme 与 toggleMode 会在更新状态的同时调用 design-system 中的 applyTheme/applyMode 以同步 DOM 与本地存储，并将这些值通过 ThemeContext.Provider 暴露给子组件。",
+      "tags": ["React Context", "Provider", "主题", "状态管理"],
+      "complexity": "moderate",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/contexts/ThemeContext.tsx:ThemeProvider",
+      "type": "function",
+      "name": "ThemeProvider",
+      "filePath": "ETF-Allocator/dashboard/src/contexts/ThemeContext.tsx",
+      "summary": "主题 Provider 组件。使用 useState 管理 theme 与 mode，初始化 theme 时通过 getSavedTheme 读取本地存储；setTheme/toggleMode 内部会同时调用 applyTheme/applyMode 触发 DOM 副作用与持久化，最终以 ThemeContext.Provider 的形式将 context value 注入子树。",
+      "tags": ["React 组件", "Provider", "主题"],
+      "complexity": "moderate",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/contexts/theme-context.ts",
+      "type": "file",
+      "name": "theme-context.ts",
+      "filePath": "ETF-Allocator/dashboard/src/contexts/theme-context.ts",
+      "summary": "主题 Context 的定义文件，起到 barrel 作用。声明 ThemeContextValue 接口（theme、setTheme、mode、toggleMode），并通过 createContext 创建类型为 ThemeContextValue | null 的 ThemeContext 实例，默认值为 null。",
+      "tags": ["React Context", "接口定义", "barrel", "类型"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/contexts/theme-context.ts:ThemeContextValue",
+      "type": "function",
+      "name": "ThemeContextValue",
+      "filePath": "ETF-Allocator/dashboard/src/contexts/theme-context.ts",
+      "summary": "主题 Context 的值类型接口，定义了 theme（Theme 对象）、setTheme（设置颜色主题）、mode（亮/暗模式字面量联合类型）与 toggleMode（切换亮暗模式）四个成员。",
+      "tags": ["TypeScript 接口", "Context 值类型"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/contexts/useTheme.ts",
+      "type": "file",
+      "name": "useTheme.ts",
+      "filePath": "ETF-Allocator/dashboard/src/contexts/useTheme.ts",
+      "summary": "主题系统的自定义 hook，封装 useContext 对 ThemeContext 的消费逻辑。若在 Provider 之外调用会抛出 'useTheme must be used within ThemeProvider' 错误，保证调用方始终拿到有效的 context 值。",
+      "tags": ["React hook", "主题", "Context 消费"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/contexts/useTheme.ts:useTheme",
+      "type": "function",
+      "name": "useTheme",
+      "filePath": "ETF-Allocator/dashboard/src/contexts/useTheme.ts",
+      "summary": "主题自定义 hook。内部调用 useContext(ThemeContext)，当返回值为 null（未在 Provider 内调用）时抛错，否则返回 ThemeContextValue。",
+      "tags": ["React hook", "useContext", "主题"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/design-system/theme.ts",
+      "type": "file",
+      "name": "theme.ts",
+      "filePath": "ETF-Allocator/dashboard/src/design-system/theme.ts",
+      "summary": "主题系统的基础设施层：定义 Theme 接口与三套预设主题（Nebula/Amber/Mint），并提供 localStorage 读写、颜色主题应用（设置 CSS 变量 --chromatic-hue 与 data-theme）、亮暗模式应用（切换 dark 类）等纯副作用工具函数。是 ThemeProvider/ThemeContext 的底层依赖。",
+      "tags": ["设计系统", "主题", "localStorage", "CSS 变量", "工具函数"],
+      "complexity": "moderate",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:Theme",
+      "type": "function",
+      "name": "Theme",
+      "filePath": "ETF-Allocator/dashboard/src/design-system/theme.ts",
+      "summary": "主题数据结构接口。包含 name（主题标识）、hue（色相数值）、label（展示名称）、colorClass（Tailwind 颜色类）四个字段，是整个主题系统的核心类型。",
+      "tags": ["TypeScript 接口", "主题", "类型"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:themes",
+      "type": "function",
+      "name": "themes",
+      "filePath": "ETF-Allocator/dashboard/src/design-system/theme.ts",
+      "summary": "预设主题数组常量，包含 nebula（hue 220）、amber（hue 45）、mint（hue 160）三个 Theme 对象，供主题选择与默认值使用。",
+      "tags": ["常量", "预设主题"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:getSavedTheme",
+      "type": "function",
+      "name": "getSavedTheme",
+      "filePath": "ETF-Allocator/dashboard/src/design-system/theme.ts",
+      "summary": "读取本地存储 'etf-theme' 键并匹配 themes 中的 Theme 对象；匹配不到或读取失败时回退到 themes[0]。常用作 useState 的惰性初始化函数。",
+      "tags": ["工具函数", "localStorage", "读取"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:applyTheme",
+      "type": "function",
+      "name": "applyTheme",
+      "filePath": "ETF-Allocator/dashboard/src/design-system/theme.ts",
+      "summary": "应用颜色主题的副作用函数。设置 documentElement 上的 CSS 变量 --chromatic-hue 与 data-theme 属性，并调用 saveTheme 持久化主题名。",
+      "tags": ["工具函数", "副作用", "CSS 变量"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:applyMode",
+      "type": "function",
+      "name": "applyMode",
+      "filePath": "ETF-Allocator/dashboard/src/design-system/theme.ts",
+      "summary": "应用亮/暗模式的副作用函数。根据 mode 切换 documentElement 的 'dark' 类（Tailwind 暗色模式约定），并调用 saveMode 持久化模式。",
+      "tags": ["工具函数", "副作用", "Tailwind 暗色模式"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:saveTheme",
+      "type": "function",
+      "name": "saveTheme",
+      "filePath": "ETF-Allocator/dashboard/src/design-system/theme.ts",
+      "summary": "将主题名写入 localStorage 的 'etf-theme' 键。",
+      "tags": ["工具函数", "localStorage", "写入"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:saveMode",
+      "type": "function",
+      "name": "saveMode",
+      "filePath": "ETF-Allocator/dashboard/src/design-system/theme.ts",
+      "summary": "将亮/暗模式写入 localStorage 的 'etf-mode' 键。",
+      "tags": ["工具函数", "localStorage", "写入"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:getSavedMode",
+      "type": "function",
+      "name": "getSavedMode",
+      "filePath": "ETF-Allocator/dashboard/src/design-system/theme.ts",
+      "summary": "读取 localStorage 的 'etf-mode' 键，合法值为 'light'/'dark'，否则回退到 'light'。",
+      "tags": ["工具函数", "localStorage", "读取"],
+      "complexity": "simple",
+      "language": "typescript"
+    }
+  ],
+  "edges": [
+    {"source": "file:ETF-Allocator/dashboard/src/components/layout/ThemeSwitcher.tsx", "target": "function:ETF-Allocator/dashboard/src/components/layout/ThemeSwitcher.tsx:ThemeSwitcher", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/dashboard/src/contexts/ThemeContext.tsx", "target": "function:ETF-Allocator/dashboard/src/contexts/ThemeContext.tsx:ThemeProvider", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/dashboard/src/contexts/theme-context.ts", "target": "function:ETF-Allocator/dashboard/src/contexts/theme-context.ts:ThemeContextValue", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/dashboard/src/contexts/useTheme.ts", "target": "function:ETF-Allocator/dashboard/src/contexts/useTheme.ts:useTheme", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/dashboard/src/design-system/theme.ts", "target": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:Theme", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/dashboard/src/design-system/theme.ts", "target": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:themes", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/dashboard/src/design-system/theme.ts", "target": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:getSavedTheme", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/dashboard/src/design-system/theme.ts", "target": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:applyTheme", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/dashboard/src/design-system/theme.ts", "target": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:applyMode", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/dashboard/src/design-system/theme.ts", "target": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:saveTheme", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/dashboard/src/design-system/theme.ts", "target": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:saveMode", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/dashboard/src/design-system/theme.ts", "target": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:getSavedMode", "type": "contains", "weight": 1.0},
+
+    {"source": "file:ETF-Allocator/dashboard/src/components/layout/ThemeSwitcher.tsx", "target": "file:ETF-Allocator/dashboard/src/contexts/useTheme.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/contexts/ThemeContext.tsx", "target": "file:ETF-Allocator/dashboard/src/contexts/theme-context.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/contexts/ThemeContext.tsx", "target": "file:ETF-Allocator/dashboard/src/design-system/theme.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/contexts/theme-context.ts", "target": "file:ETF-Allocator/dashboard/src/design-system/theme.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/contexts/useTheme.ts", "target": "file:ETF-Allocator/dashboard/src/contexts/theme-context.ts", "type": "imports", "weight": 0.7},
+
+    {"source": "function:ETF-Allocator/dashboard/src/components/layout/ThemeSwitcher.tsx:ThemeSwitcher", "target": "function:ETF-Allocator/dashboard/src/contexts/useTheme.ts:useTheme", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/dashboard/src/contexts/useTheme.ts:useTheme", "target": "function:ETF-Allocator/dashboard/src/contexts/theme-context.ts:ThemeContextValue", "type": "depends_on", "weight": 0.6},
+    {"source": "function:ETF-Allocator/dashboard/src/contexts/ThemeContext.tsx:ThemeProvider", "target": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:getSavedTheme", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/dashboard/src/contexts/ThemeContext.tsx:ThemeProvider", "target": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:applyTheme", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/dashboard/src/contexts/ThemeContext.tsx:ThemeProvider", "target": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:applyMode", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/dashboard/src/contexts/ThemeContext.tsx:ThemeProvider", "target": "function:ETF-Allocator/dashboard/src/contexts/theme-context.ts:ThemeContextValue", "type": "implements", "weight": 0.9},
+    {"source": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:applyTheme", "target": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:saveTheme", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:applyMode", "target": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:saveMode", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:getSavedTheme", "target": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:themes", "type": "depends_on", "weight": 0.6},
+
+    {"source": "file:ETF-Allocator/dashboard/src/contexts/theme-context.ts", "target": "function:ETF-Allocator/dashboard/src/design-system/theme.ts:Theme", "type": "depends_on", "weight": 0.6}
+  ]
+}

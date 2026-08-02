@@ -1,0 +1,29 @@
+{
+  "batchIndex": 6,
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "language": "markdown",
+      "sizeLines": 143,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "CLAUDE.md",
+      "language": "markdown",
+      "sizeLines": 143,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "README.md",
+      "language": "markdown",
+      "sizeLines": 428,
+      "fileCategory": "docs"
+    }
+  ],
+  "batchImportData": {
+    "AGENTS.md": [],
+    "CLAUDE.md": [],
+    "README.md": []
+  },
+  "neighborMap": {}
+}

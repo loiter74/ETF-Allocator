@@ -1,0 +1,69 @@
+{
+  "batchIndex": 5,
+  "files": [
+    {
+      "path": "ETF-Allocator/dashboard/src/components/layout/ThemeSwitcher.tsx",
+      "language": "typescript",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/dashboard/src/contexts/ThemeContext.tsx",
+      "language": "typescript",
+      "sizeLines": 20,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/dashboard/src/contexts/theme-context.ts",
+      "language": "typescript",
+      "sizeLines": 11,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/dashboard/src/contexts/useTheme.ts",
+      "language": "typescript",
+      "sizeLines": 8,
+      "fileCategory": "code"
+    },
+    {
+      "path": "ETF-Allocator/dashboard/src/design-system/theme.ts",
+      "language": "typescript",
+      "sizeLines": 62,
+      "fileCategory": "code"
+    }
+  ],
+  "batchImportData": {
+    "ETF-Allocator/dashboard/src/components/layout/ThemeSwitcher.tsx": [
+      "ETF-Allocator/dashboard/src/contexts/useTheme.ts"
+    ],
+    "ETF-Allocator/dashboard/src/contexts/ThemeContext.tsx": [
+      "ETF-Allocator/dashboard/src/contexts/theme-context.ts",
+      "ETF-Allocator/dashboard/src/design-system/theme.ts"
+    ],
+    "ETF-Allocator/dashboard/src/contexts/theme-context.ts": [
+      "ETF-Allocator/dashboard/src/design-system/theme.ts"
+    ],
+    "ETF-Allocator/dashboard/src/contexts/useTheme.ts": [
+      "ETF-Allocator/dashboard/src/contexts/theme-context.ts"
+    ],
+    "ETF-Allocator/dashboard/src/design-system/theme.ts": []
+  },
+  "neighborMap": {
+    "ETF-Allocator/dashboard/src/contexts/ThemeContext.tsx": [
+      {
+        "path": "ETF-Allocator/dashboard/src/App.tsx",
+        "batchIndex": 1,
+        "symbols": [
+          "App"
+        ]
+      }
+    ],
+    "ETF-Allocator/dashboard/src/design-system/theme.ts": [
+      {
+        "path": "ETF-Allocator/dashboard/src/main.tsx",
+        "batchIndex": 1,
+        "symbols": []
+      }
+    ]
+  }
+}

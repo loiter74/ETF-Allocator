@@ -1,0 +1,56 @@
+# .understandignore — patterns for files/dirs to exclude from analysis
+# Syntax: same as .gitignore (globs, # comments, ! negation, trailing / for dirs)
+#
+# Built-in defaults (always excluded unless negated):
+#   node_modules/, .git/, dist/, build/, obj/, *.lock, *.min.js, etc.
+#
+# This repo's root contains vendored agent tooling and superseded design docs
+# that are NOT part of the ETF Allocator project. They are actively excluded
+# below so the knowledge graph reflects the real codebase.
+
+# --- This skill's own output (do not analyze the analyzer) ---
+.understand-anything/
+
+# --- Vendored agent skill/command tooling (NOT the project) ---
+.agents/
+.claude/
+.cline/
+.clinerules/
+.codex/
+.opencode/
+.playwright-mcp/
+.playwright/
+.sisyphus/
+.gstack/
+.pytest_cache/
+
+# --- OpenSpec workflow tooling (process artifacts, not project code) ---
+openspec/
+
+# --- Superseded / scratch design docs at root ---
+# ds.v1.3.md is the canonical design spec and IS included.
+# These are older iterations AGENTS.md says are replaced:
+claude.v1.2.md
+ds.md
+ds.v1.2.winner.md
+gpt.md
+
+# --- Large binary / non-source artifacts at root ---
+*.html
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.ico
+nul
+
+# --- Build / cache / data artifacts ---
+ETF-Allocator/dashboard/dist/
+ETF-Allocator/dashboard/node_modules/
+ETF-Allocator/data/db/
+ETF-Allocator/__pycache__/
+ETF-Allocator/notebooks/
+
+# --- Lock files / manifests already covered by defaults, kept explicit ---
+pnpm-lock.yaml
+package-lock.json

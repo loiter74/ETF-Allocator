@@ -1,0 +1,59 @@
+{
+  "issues": [],
+  "warnings": [
+    "Node 'file:ETF-Allocator/dashboard/eslint.config.js' has no edges (orphan)",
+    "Node 'file:ETF-Allocator/dashboard/public/manifest.json' has no edges (orphan)",
+    "Node 'file:ETF-Allocator/data/DATA_IMPORT_LOG.md' has no edges (orphan)",
+    "Node 'file:ETF-Allocator/scripts/AGENTS.md' has no edges (orphan)",
+    "Node 'file:ETF-Allocator/scripts/import_pb_one.py' has no edges (orphan)",
+    "Node 'file:ETF-Allocator/scripts/import_pb.py' has no edges (orphan)",
+    "Node 'file:ETF-Allocator/src/__init__.py' has no edges (orphan)",
+    "Node 'file:ETF-Allocator/src/allocation/__init__.py' has no edges (orphan)",
+    "Node 'file:ETF-Allocator/src/constraints/__init__.py' has no edges (orphan)",
+    "Node 'file:ETF-Allocator/src/datasource/__init__.py' has no edges (orphan)",
+    "Node 'file:ETF-Allocator/src/rebalance/__init__.py' has no edges (orphan)",
+    "Node 'file:ETF-Allocator/src/regime/__init__.py' has no edges (orphan)",
+    "Node 'file:ETF-Allocator/src/reports/__init__.py' has no edges (orphan)",
+    "Node 'file:ETF-Allocator/src/risk/__init__.py' has no edges (orphan)",
+    "Node 'file:ETF-Allocator/src/scoring/__init__.py' has no edges (orphan)",
+    "Node 'file:ETF-Allocator/src/store/__init__.py' has no edges (orphan)",
+    "Node 'file:ETF-Allocator/tests/__init__.py' has no edges (orphan)",
+    "Node 'file:ETF-Allocator/tests/unit/__init__.py' has no edges (orphan)"
+  ],
+  "stats": {
+    "totalNodes": 374,
+    "totalEdges": 803,
+    "totalLayers": 12,
+    "tourSteps": 12,
+    "nodeTypes": {
+      "file": 129,
+      "function": 164,
+      "class": 37,
+      "config": 7,
+      "table": 11,
+      "endpoint": 7,
+      "document": 9,
+      "concept": 9,
+      "pipeline": 1
+    },
+    "edgeTypes": {
+      "imports": 182,
+      "contains": 201,
+      "routes": 10,
+      "configures": 30,
+      "defines_schema": 13,
+      "depends_on": 19,
+      "calls": 126,
+      "tested_by": 46,
+      "writes_to": 18,
+      "reads_from": 9,
+      "validates": 2,
+      "implements": 1,
+      "related": 17,
+      "documents": 118,
+      "triggers": 7,
+      "deploys": 2,
+      "references": 2
+    }
+  }
+}

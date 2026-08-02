@@ -1,0 +1,841 @@
+{
+  "batchIndex": 3,
+  "nodes": [
+    {
+      "id": "file:ETF-Allocator/src/allocation/allocator.py",
+      "type": "file",
+      "name": "allocator.py",
+      "filePath": "ETF-Allocator/src/allocation/allocator.py",
+      "summary": "资金分配主模块：缺口分 + 机会分按权重融合出综合优先级，再按上限与可买系数依次切分本月权益预算。国债作为吸收口——所有因子组超限等比缩减的溢出与剩余预算最终都进入国债ETF；total_assets=0 时进入初始建仓分支，按机会分比例分配。",
+      "tags": ["资金分配", "国债吸收口", "缺口分", "机会分", "因子组约束", "初始建仓"],
+      "complexity": "high",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/src/allocation/allocator.py:compute_gap_scores",
+      "type": "function",
+      "name": "compute_gap_scores",
+      "filePath": "ETF-Allocator/src/allocation/allocator.py",
+      "summary": "计算每个权益资产（排除国债）的缺口分：max(0, 目标下限 - 当前权重)，并归一化到 [0,1]；缺口和为 0 时全部返回 0。",
+      "tags": ["缺口分", "归一化", "目标带"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/src/allocation/allocator.py:compute_priority",
+      "type": "function",
+      "name": "compute_priority",
+      "filePath": "ETF-Allocator/src/allocation/allocator.py",
+      "summary": "综合优先级：所有缺口分≤0 时直接用机会分，否则 GAP_WEIGHT×缺口分 + OPPORTUNITY_WEIGHT×机会分；机会分为 None 的资产优先级置 0。",
+      "tags": ["优先级", "权重融合"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/src/allocation/allocator.py:allocate",
+      "type": "function",
+      "name": "allocate",
+      "filePath": "ETF-Allocator/src/allocation/allocator.py",
+      "summary": "分配主函数：total_assets≤0 走初始建仓；否则计算缺口/优先级，按优先级降序、结合上限对应金额与 buy_coefficients 依次切分权益预算，机会分低于 MIN_OPPORTUNITY_SCORE 跳过。应用因子组等比缩减后，剩余预算与组溢出全部进国债ETF。支持 DEBUG_ALLOC 环境变量打印明细。",
+      "tags": ["分配主函数", "国债吸收口", "上限封顶", "debug"],
+      "complexity": "high",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/src/allocation/allocator.py:_initial_build_allocation",
+      "type": "function",
+      "name": "_initial_build_allocation",
+      "filePath": "ETF-Allocator/src/allocation/allocator.py",
+      "summary": "初始建仓模式：无历史持仓时按机会分降序、上限封顶分配预算，再过因子组约束，剩余资金进国债。机会分过低或被约束层禁止（系数≤0）的资产直接跳过。",
+      "tags": ["初始建仓", "机会分排序", "国债吸收口"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/src/allocation/allocator.py:_apply_group_constraint",
+      "type": "function",
+      "name": "_apply_group_constraint",
+      "filePath": "ETF-Allocator/src/allocation/allocator.py",
+      "summary": "因子组约束检查：模拟分配后权重，对 VALUE/GROWTH 等组若超组上限则在组内等比缩减分配金额，溢出部分加到国债ETF，保证组权重不越线。",
+      "tags": ["因子组约束", "等比缩减", "国债吸收口"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+
+    {
+      "id": "file:ETF-Allocator/src/api/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "ETF-Allocator/src/api/__init__.py",
+      "summary": "api 包的空初始化文件，仅用于将目录标记为 Python 包，便于 src.api.server 的导入。",
+      "tags": ["空 __init__.py", "包初始化"],
+      "complexity": "simple",
+      "language": "python"
+    },
+
+    {
+      "id": "file:ETF-Allocator/src/api/server.py",
+      "type": "file",
+      "name": "server.py",
+      "filePath": "ETF-Allocator/src/api/server.py",
+      "summary": "FastAPI 后端入口：聚合 scoring/risk/thermometer/constraints/allocation/bond_liquidity 全套模块，提供 /api/report（GET/POST 月报与模拟）、/api/history（PE/PB 历史分位）、/api/investments（投入记录 CRUD）端点；生产环境挂载 dashboard/dist 的静态文件与 SPA fallback。POST /api/report 与 GET /api/report 共用同一套温度计→风险上限→约束→分配→国债累积器的管线，区别仅在权重来源。",
+      "tags": ["FastAPI", "后端", "API", "SPA", "CORS", "投入记录"],
+      "complexity": "high",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/src/api/server.py:_open_investment_db",
+      "type": "function",
+      "name": "_open_investment_db",
+      "filePath": "ETF-Allocator/src/api/server.py",
+      "summary": "打开投资记录 SQLite 连接，启用 row_factory 与外键约束，并调用 create_tables 保证表结构存在。",
+      "tags": ["SQLite", "连接", "schema"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/src/api/server.py:_serialize_investment",
+      "type": "function",
+      "name": "_serialize_investment",
+      "filePath": "ETF-Allocator/src/api/server.py",
+      "summary": "将 investment_record 行序列化为字典，金额由分转元（除以 100），并合并明细 allocations。",
+      "tags": ["序列化", "投入记录"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/src/api/server.py:_investment_response",
+      "type": "function",
+      "name": "_investment_response",
+      "filePath": "ETF-Allocator/src/api/server.py",
+      "summary": "汇总全部投入记录与其分项明细，返回 records 列表与 summary（条数、合计金额、最近日期/金额）。",
+      "tags": ["汇总", "summary", "投入记录"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/src/api/server.py:_import_run_functions",
+      "type": "function",
+      "name": "_import_run_functions",
+      "filePath": "ETF-Allocator/src/api/server.py",
+      "summary": "延迟从 run.py 导入 get_db_connection/ensure_etf_seed_data/get_latest_date/calculate_factors/compute_current_weights/load_valuation_series 等计算函数，避免导入时重复执行 run.py。",
+      "tags": ["延迟导入", "run.py"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/src/api/server.py:_midpoint_weights",
+      "type": "function",
+      "name": "_midpoint_weights",
+      "filePath": "ETF-Allocator/src/api/server.py",
+      "summary": "基于 TARGET_BANDS 计算每个资产的目标带中点权重，用于 POST /api/report 未传 current_weights 时的默认场景。",
+      "tags": ["中点权重", "TARGET_BANDS"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "class:ETF-Allocator/src/api/server.py:ReportParams",
+      "type": "class",
+      "name": "ReportParams",
+      "filePath": "ETF-Allocator/src/api/server.py",
+      "summary": "POST /api/report 的 Pydantic 请求体：date、new_money、total_assets、current_weights 四个可选字段，分别用于日期、本月新增资金、总资产与当前权重。",
+      "tags": ["Pydantic", "请求体", "report"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "class:ETF-Allocator/src/api/server.py:InvestmentRecordParams",
+      "type": "class",
+      "name": "InvestmentRecordParams",
+      "filePath": "ETF-Allocator/src/api/server.py",
+      "summary": "POST /api/investments 的 Pydantic 请求体：investment_date、amount（Decimal，可选）、allocations（资产→Decimal）、note。金额字段做了 gt=0 与 max_digits 校验。",
+      "tags": ["Pydantic", "请求体", "投入记录", "Decimal"],
+      "complexity": "simple",
+      "language": "python"
+    },
+
+    {
+      "id": "endpoint:ETF-Allocator/src/api/server.py:GET_api_report",
+      "type": "endpoint",
+      "name": "GET /api/report",
+      "filePath": "ETF-Allocator/src/api/server.py",
+      "summary": "生成月度配置报告：读取最新/指定日期，计算因子与机会分，用温度计算权益/国债比例，调用风险上限、约束层、分配主函数；并附加长周期 PE/PB 分位、温度档位、国债累积器状态（read-only 投影，不持久化）、分配摘要与红利单因子背离检查。",
+      "tags": ["endpoint", "report", "月报", "read-only"],
+      "complexity": "high",
+      "language": "python"
+    },
+    {
+      "id": "endpoint:ETF-Allocator/src/api/server.py:POST_api_report",
+      "type": "endpoint",
+      "name": "POST /api/report",
+      "filePath": "ETF-Allocator/src/api/server.py",
+      "summary": "自定义参数模拟：接收 ReportParams，未传 current_weights 时用目标带中点，按相同管线（温度计→风险→约束→分配→国债累积器）输出投前/投后权重、分配方案与触发理由。",
+      "tags": ["endpoint", "report", "模拟", "投后权重"],
+      "complexity": "high",
+      "language": "python"
+    },
+    {
+      "id": "endpoint:ETF-Allocator/src/api/server.py:GET_api_history",
+      "type": "endpoint",
+      "name": "GET /api/history",
+      "filePath": "ETF-Allocator/src/api/server.py",
+      "summary": "查询指数的 PE/PB 历史序列，按 years 参数限定起始日期，用 pandas expanding().rank(pct=True) 计算 expanding window 分位，并对超过 300 个点的结果降采样到约 200 个点供前端绘图。",
+      "tags": ["endpoint", "history", "PE/PB", "expanding window", "降采样"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "endpoint:ETF-Allocator/src/api/server.py:GET_api_investments",
+      "type": "endpoint",
+      "name": "GET /api/investments",
+      "filePath": "ETF-Allocator/src/api/server.py",
+      "summary": "返回全部投入记录及分项明细，附 summary 汇总（条数、合计金额、最近日期/金额）。",
+      "tags": ["endpoint", "investments", "查询"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "endpoint:ETF-Allocator/src/api/server.py:POST_api_investments",
+      "type": "endpoint",
+      "name": "POST /api/investments",
+      "filePath": "ETF-Allocator/src/api/server.py",
+      "summary": "创建投入记录：校验日期不晚于今天、资产白名单、金额非负/上限、总额与分项合计一致，按分转元存入 investment_record 与 investment_record_item；唯一约束冲突返回 409。",
+      "tags": ["endpoint", "investments", "创建", "校验"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "endpoint:ETF-Allocator/src/api/server.py:DELETE_api_investments",
+      "type": "endpoint",
+      "name": "DELETE /api/investments/{record_id}",
+      "filePath": "ETF-Allocator/src/api/server.py",
+      "summary": "按 id 删除投入记录（外键级联清理明细），不存在返回 404，成功返回 204。",
+      "tags": ["endpoint", "investments", "删除", "级联"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "endpoint:ETF-Allocator/src/api/server.py:GET_spa_fallback",
+      "type": "endpoint",
+      "name": "GET /{full_path:path} (SPA)",
+      "filePath": "ETF-Allocator/src/api/server.py",
+      "summary": "生产模式 SPA fallback：当 dashboard/dist 存在时挂载 /assets 静态目录，并把所有非 API 路径回退到 index.html，以支持前端路由。",
+      "tags": ["endpoint", "SPA", "静态文件", "fallback"],
+      "complexity": "simple",
+      "language": "python"
+    },
+
+    {
+      "id": "file:ETF-Allocator/src/constraints/portfolio.py",
+      "type": "file",
+      "name": "portfolio.py",
+      "filePath": "ETF-Allocator/src/constraints/portfolio.py",
+      "summary": "组合约束层：单标的带（上下限 + 缓冲带惩罚函数）与因子组带（VALUE ≤ 60%、GROWTH ≤ 15%，配置来自 GROUP_CAPS）双层约束。输出可买系数 [0,1] 与最大买入金额；因子组超限时在组内等比缩减，溢出进国债。所有计算直接基于当前持仓与当前上限，不记忆旧值。",
+      "tags": ["约束层", "惩罚函数", "因子组约束", "VALUE 60%", "GROWTH 15%", "国债吸收口"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/src/constraints/portfolio.py:buy_coefficient",
+      "type": "function",
+      "name": "buy_coefficient",
+      "filePath": "ETF-Allocator/src/constraints/portfolio.py",
+      "summary": "惩罚函数：当前权重→可买系数 [0,1]。权重低于上限-buffer 时为 1.0（完全自由），落入缓冲带 [上限-buffer, 上限) 时线性递减到 0，≥上限为 0；buffer≤0 退化为硬开关。",
+      "tags": ["惩罚函数", "缓冲带", "可买系数"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/src/constraints/portfolio.py:max_buy_amount",
+      "type": "function",
+      "name": "max_buy_amount",
+      "filePath": "ETF-Allocator/src/constraints/portfolio.py",
+      "summary": "计算本月最多可买入金额：上限×总资产 - 当前持仓，结果永不小于 0。",
+      "tags": ["最大买入金额", "上限"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/src/constraints/portfolio.py:group_weight",
+      "type": "function",
+      "name": "group_weight",
+      "filePath": "ETF-Allocator/src/constraints/portfolio.py",
+      "summary": "聚合某因子组（VALUE/GROWTH/DEFENSE）在当前权重下的组合总权重，依据 ASSETS 配置的 factor_group 字段过滤。",
+      "tags": ["因子组权重", "聚合"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/src/constraints/portfolio.py:check_factor_group_constraint",
+      "type": "function",
+      "name": "check_factor_group_constraint",
+      "filePath": "ETF-Allocator/src/constraints/portfolio.py",
+      "summary": "检查因子组约束是否触发：模拟分配后权重，若组超 cap 则在组内等比缩减分配金额，溢出加到国债ETF；返回 status/group/scaled_allocations。仅返回首个触发的组。",
+      "tags": ["因子组约束", "等比缩减", "国债吸收口"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/src/constraints/portfolio.py:apply_constraints",
+      "type": "function",
+      "name": "apply_constraints",
+      "filePath": "ETF-Allocator/src/constraints/portfolio.py",
+      "summary": "综合应用所有约束：对每个资产算 buy_coefficient 与 max_buy_amount，并聚合各组当前权重，输出 buy_coefficients/max_buy/group_weights/group_caps 四件套，供分配层使用。",
+      "tags": ["综合约束", "四件套"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+
+    {
+      "id": "file:ETF-Allocator/src/regime/thermometer.py",
+      "type": "file",
+      "name": "thermometer.py",
+      "filePath": "ETF-Allocator/src/regime/thermometer.py",
+      "summary": "市场温度计：双指标（沪深300 PE分位 p1、全A PB分位 p2）各自映射到 4 档（双<60%→100%、60-80%→70%、80-90%→40%、≥90%→30%）。档位一致→应用对应权益比并记住；不一致→冻结上期比例。使用模块级全局 _last_equity_ratio/_last_bond_ratio 保存状态，并通过 load/save/read_persistence 跨进程持久化到 regime_state.json。",
+      "tags": ["温度计", "市场状态", "双指标", "不一致冻结", "全局状态", "_last_equity_ratio", "持久化"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/src/regime/thermometer.py:_tier",
+      "type": "function",
+      "name": "_tier",
+      "filePath": "ETF-Allocator/src/regime/thermometer.py",
+      "summary": "将分位值映射到 4 档档位 0-3，阈值来自 TEMP_THRESHOLDS（默认 [0.60, 0.80, 0.90]）。server.py 也复用此函数给前端做档位标签映射。",
+      "tags": ["档位映射", "阈值"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/src/regime/thermometer.py:equity_ratio",
+      "type": "function",
+      "name": "equity_ratio",
+      "filePath": "ETF-Allocator/src/regime/thermometer.py",
+      "summary": "4 档分级温度计 + 不一致冻结（写状态版本）：双指标任一为 None 或档位不一致时返回 _last_equity_ratio（无历史则用 THERMOMETER_DEFAULT_EQUITY），一致时更新全局 _last_equity_ratio/_last_bond_ratio。流A运行流与回测使用此函数。",
+      "tags": ["权益比", "不一致冻结", "全局状态", "有副作用"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/src/regime/thermometer.py:resolve_equity_ratio",
+      "type": "function",
+      "name": "resolve_equity_ratio",
+      "filePath": "ETF-Allocator/src/regime/thermometer.py",
+      "summary": "纯函数温度计计算（无副作用）：供只读 API 使用。任一 None 或档位不一致时取 previous_equity_ratio（无则默认），否则取 TEMP_EQUITY_RATIOS[档位]；返回 (equity, bond)。",
+      "tags": ["权益比", "纯函数", "read-only", "无副作用"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/src/regime/thermometer.py:reset_persistence",
+      "type": "function",
+      "name": "reset_persistence",
+      "filePath": "ETF-Allocator/src/regime/thermometer.py",
+      "summary": "重置模块级全局状态 _last_equity_ratio/_last_bond_ratio 为 None，用于测试夹具与回测初始化。",
+      "tags": ["重置", "全局状态", "测试"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/src/regime/thermometer.py:load_persistence",
+      "type": "function",
+      "name": "load_persistence",
+      "filePath": "ETF-Allocator/src/regime/thermometer.py",
+      "summary": "从 regime_state.json 读取上次权益比并加载到全局 _last_equity_ratio/_last_bond_ratio，用于跨进程月度运行；文件缺失或解析失败则忽略/重置。",
+      "tags": ["加载持久化", "跨进程", "regime_state.json"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/src/regime/thermometer.py:read_persistence",
+      "type": "function",
+      "name": "read_persistence",
+      "filePath": "ETF-Allocator/src/regime/thermometer.py",
+      "summary": "只读读取 regime_state.json 中的 equity_ratio，不修改模块状态；文件不存在或异常返回 None。",
+      "tags": ["read-only", "持久化", "无副作用"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/src/regime/thermometer.py:save_persistence",
+      "type": "function",
+      "name": "save_persistence",
+      "filePath": "ETF-Allocator/src/regime/thermometer.py",
+      "summary": "若 _last_equity_ratio 存在则原子化写入 regime_state.json（先写 .tmp 再 replace），保证跨进程持久化的完整性。",
+      "tags": ["持久化", "原子写", "regime_state.json"],
+      "complexity": "simple",
+      "language": "python"
+    },
+
+    {
+      "id": "file:ETF-Allocator/tests/integration/test_api_idempotency.py",
+      "type": "file",
+      "name": "test_api_idempotency.py",
+      "filePath": "ETF-Allocator/tests/integration/test_api_idempotency.py",
+      "summary": "集成测试：验证 GET /api/report（初始建仓模式）连续两次调用不会创建或修改 bond_accumulator.json 状态文件，且两次返回的 bond_status 与 allocations 完全一致（只读语义）。",
+      "tags": ["集成测试", "幂等性", "国债累积器", "read-only"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/tests/integration/test_api_idempotency.py:test_get_report_does_not_create_or_change_bond_state",
+      "type": "function",
+      "name": "test_get_report_does_not_create_or_change_bond_state",
+      "filePath": "ETF-Allocator/tests/integration/test_api_idempotency.py",
+      "summary": "用 monkeypatch 把 BOND_ACCUMULATOR_PATH 指向 tmp_path，连续两次调用 server.get_report，断言状态文件未被创建、两次返回的 bond_status 与 allocations 相同。",
+      "tags": ["测试函数", "幂等性", "monkeypatch"],
+      "complexity": "simple",
+      "language": "python"
+    },
+
+    {
+      "id": "file:ETF-Allocator/tests/integration/test_e2e_scenarios.py",
+      "type": "file",
+      "name": "test_e2e_scenarios.py",
+      "filePath": "ETF-Allocator/tests/integration/test_e2e_scenarios.py",
+      "summary": "端到端集成测试：autouse 夹具每个用例前 reset_persistence。覆盖过热市场（权益30%+国债吸收）、低估市场（优先填缺口）、初始建仓（遵守单资产上限）、约束层集成（接近上限时 buy_coefficient 降为接近0）四个场景，验证 thermometer→constraints→allocator 完整管线。",
+      "tags": ["集成测试", "端到端", "场景测试", "过热", "低估", "初始建仓"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/tests/integration/test_e2e_scenarios.py:test_overheat_market_limits_equity",
+      "type": "function",
+      "name": "test_overheat_market_limits_equity",
+      "filePath": "ETF-Allocator/tests/integration/test_e2e_scenarios.py",
+      "summary": "过热市场场景：低 equity_budget 下分配，断言各权益资产分配非负、国债收到资金（国债吸收口语义）。",
+      "tags": ["测试函数", "过热市场"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/tests/integration/test_e2e_scenarios.py:test_cool_market_fills_gaps",
+      "type": "function",
+      "name": "test_cool_market_fills_gaps",
+      "filePath": "ETF-Allocator/tests/integration/test_e2e_scenarios.py",
+      "summary": "低估市场场景：白酒权重低于下限时应优先分配到资金（缺口填补）。",
+      "tags": ["测试函数", "低估市场", "缺口填补"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/tests/integration/test_e2e_scenarios.py:test_initial_build_respects_caps",
+      "type": "function",
+      "name": "test_initial_build_respects_caps",
+      "filePath": "ETF-Allocator/tests/integration/test_e2e_scenarios.py",
+      "summary": "初始建仓场景：total_assets=0 时每个权益资产分配额不超过其 cap×budget（含 1 元容差）。",
+      "tags": ["测试函数", "初始建仓", "上限"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/tests/integration/test_e2e_scenarios.py:test_constraint_integration_prevents_overweight",
+      "type": "function",
+      "name": "test_constraint_integration_prevents_overweight",
+      "filePath": "ETF-Allocator/tests/integration/test_e2e_scenarios.py",
+      "summary": "约束层集成：白酒接近上限时 apply_constraints 输出的 buy_coefficient 应<0.5，约束 allocator 减少买入。",
+      "tags": ["测试函数", "约束集成"],
+      "complexity": "simple",
+      "language": "python"
+    },
+
+    {
+      "id": "file:ETF-Allocator/tests/unit/test_allocation.py",
+      "type": "file",
+      "name": "test_allocation.py",
+      "filePath": "ETF-Allocator/tests/unit/test_allocation.py",
+      "summary": "allocator.py 的单元测试：覆盖基础分配（总额≤预算、机会分排序、达上限跳过、全部进国债、None分跳过、无非负、预算为0）、buy_coefficients 集成（系数0禁止、系数0.5减半、缺省全买）、MIN_OPPORTUNITY_SCORE 阈值（初始建仓低分跳过）。",
+      "tags": ["单元测试", "资金分配"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "class:ETF-Allocator/tests/unit/test_allocation.py:TestBasicAllocation",
+      "type": "class",
+      "name": "TestBasicAllocation",
+      "filePath": "ETF-Allocator/tests/unit/test_allocation.py",
+      "summary": "基础分配测试类：含 setup_data 构造标准六资产场景，覆盖总额、排序、达上限跳过、全进国债、None分跳过、非负、预算为0 等用例。",
+      "tags": ["测试类", "基础分配"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "class:ETF-Allocator/tests/unit/test_allocation.py:TestBuyCoefficient",
+      "type": "class",
+      "name": "TestBuyCoefficient",
+      "filePath": "ETF-Allocator/tests/unit/test_allocation.py",
+      "summary": "约束层 buy_coefficients 集成测试类：系数=0 禁止分配、系数=0.5 max_buy 减半、不传 buy_coefficients 默认行为不变（向后兼容）。",
+      "tags": ["测试类", "可买系数"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "class:ETF-Allocator/tests/unit/test_allocation.py:TestOpportunityThreshold",
+      "type": "class",
+      "name": "TestOpportunityThreshold",
+      "filePath": "ETF-Allocator/tests/unit/test_allocation.py",
+      "summary": "MIN_OPPORTUNITY_SCORE 阈值测试类：初始建仓时低分（0.09<0.20）资产跳过，缺口大时综合分可能达标也可能跳过。",
+      "tags": ["测试类", "机会分阈值"],
+      "complexity": "simple",
+      "language": "python"
+    },
+
+    {
+      "id": "file:ETF-Allocator/tests/unit/test_constraints.py",
+      "type": "file",
+      "name": "test_constraints.py",
+      "filePath": "ETF-Allocator/tests/unit/test_constraints.py",
+      "summary": "constraints/portfolio.py 的单元测试：覆盖 buy_coefficient（缓冲带、边界、硬开关、负权重）、max_buy_amount（有/无空间、永不负）、group_weight（VALUE/GROWTH 聚合）、check_factor_group_constraint（VALUE 60%、GROWTH 15% 超限触发 scale_down）、apply_constraints 综合四件套。",
+      "tags": ["单元测试", "约束层", "因子组约束"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "class:ETF-Allocator/tests/unit/test_constraints.py:TestBuyCoefficient",
+      "type": "class",
+      "name": "TestBuyCoefficient",
+      "filePath": "ETF-Allocator/tests/unit/test_constraints.py",
+      "summary": "惩罚函数测试类：缓冲带完全自由/部分递减/达上限为0/超上限/边界值/硬开关/负权重。",
+      "tags": ["测试类", "惩罚函数"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "class:ETF-Allocator/tests/unit/test_constraints.py:TestMaxBuyAmount",
+      "type": "class",
+      "name": "TestMaxBuyAmount",
+      "filePath": "ETF-Allocator/tests/unit/test_constraints.py",
+      "summary": "最大买入金额测试类：有空间/无空间/超上限/永不负/国债同样适用公式。",
+      "tags": ["测试类", "最大买入金额"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "class:ETF-Allocator/tests/unit/test_constraints.py:TestGroupWeight",
+      "type": "class",
+      "name": "TestGroupWeight",
+      "filePath": "ETF-Allocator/tests/unit/test_constraints.py",
+      "summary": "因子组权重聚合测试类：VALUE 排除 GROWTH、GROWTH 单资产聚合。",
+      "tags": ["测试类", "因子组权重"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "class:ETF-Allocator/tests/unit/test_constraints.py:TestFactorGroupConstraint",
+      "type": "class",
+      "name": "TestFactorGroupConstraint",
+      "filePath": "ETF-Allocator/tests/unit/test_constraints.py",
+      "summary": "因子组上限检查测试类：VALUE OK/超 60% 触发缩减（缩减后组组合≤60000）、GROWTH 超 15% 触发缩减。",
+      "tags": ["测试类", "因子组约束", "VALUE 60%", "GROWTH 15%"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "class:ETF-Allocator/tests/unit/test_constraints.py:TestApplyConstraints",
+      "type": "class",
+      "name": "TestApplyConstraints",
+      "filePath": "ETF-Allocator/tests/unit/test_constraints.py",
+      "summary": "综合约束应用测试类：所有资产有空间/部分达上限、max_buy 正/零、输出四件套 key 完整。",
+      "tags": ["测试类", "综合约束"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+
+    {
+      "id": "file:ETF-Allocator/tests/unit/test_investment_records.py",
+      "type": "file",
+      "name": "test_investment_records.py",
+      "filePath": "ETF-Allocator/tests/unit/test_investment_records.py",
+      "summary": "server.py 投入记录 API 的单元测试：isolated_database 夹具用 tmp_path 隔离 DB，覆盖空汇总、创建+列表+汇总、分项推导总额并持久化全资产、非法明细拒绝（未知资产/负数/全0）、重复 409、未来日期 422、删除级联清理与 404。",
+      "tags": ["单元测试", "投入记录", "API", "SQLite"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/tests/unit/test_investment_records.py:test_empty_investment_summary",
+      "type": "function",
+      "name": "test_empty_investment_summary",
+      "filePath": "ETF-Allocator/tests/unit/test_investment_records.py",
+      "summary": "空库下 get_investments 返回空 records 与全 0/None summary。",
+      "tags": ["测试函数", "空库"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/tests/unit/test_investment_records.py:test_create_list_and_summarize_investments",
+      "type": "function",
+      "name": "test_create_list_and_summarize_investments",
+      "filePath": "ETF-Allocator/tests/unit/test_investment_records.py",
+      "summary": "创建两条记录后断言返回顺序（按日期倒序）、金额换算、note 去空格、summary 合计与最近记录。",
+      "tags": ["测试函数", "创建", "排序"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/tests/unit/test_investment_records.py:test_detailed_investment_derives_total_and_persists_all_assets",
+      "type": "function",
+      "name": "test_detailed_investment_derives_total_and_persists_all_assets",
+      "filePath": "ETF-Allocator/tests/unit/test_investment_records.py",
+      "summary": "分项明细提交时自动推导总额，并持久化全部资产（未传的为 0）；created 与 get_investments 返回一致。",
+      "tags": ["测试函数", "分项明细", "总额推导"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/tests/unit/test_investment_records.py:test_invalid_investment_details_are_rejected",
+      "type": "function",
+      "name": "test_invalid_investment_details_are_rejected",
+      "filePath": "ETF-Allocator/tests/unit/test_investment_records.py",
+      "summary": "参数化测试：未知资产、负金额、全0三种非法明细均返回 422 且 detail 含对应中文提示。",
+      "tags": ["测试函数", "参数化", "校验"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/tests/unit/test_investment_records.py:test_duplicate_investment_returns_conflict",
+      "type": "function",
+      "name": "test_duplicate_investment_returns_conflict",
+      "filePath": "ETF-Allocator/tests/unit/test_investment_records.py",
+      "summary": "同一日期重复创建返回 409，且 records 数量仍为 1。",
+      "tags": ["测试函数", "重复", "409"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/tests/unit/test_investment_records.py:test_future_date_is_rejected",
+      "type": "function",
+      "name": "test_future_date_is_rejected",
+      "filePath": "ETF-Allocator/tests/unit/test_investment_records.py",
+      "summary": "投入日期晚于今天返回 422。",
+      "tags": ["测试函数", "未来日期", "422"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/tests/unit/test_investment_records.py:test_delete_investment_updates_summary_and_cascades_details",
+      "type": "function",
+      "name": "test_delete_investment_updates_summary_and_cascades_details",
+      "filePath": "ETF-Allocator/tests/unit/test_investment_records.py",
+      "summary": "删除记录返回 204、summary 归零、investment_record_item 被级联清空；再次删除返回 404。",
+      "tags": ["测试函数", "删除", "级联", "404"],
+      "complexity": "simple",
+      "language": "python"
+    },
+
+    {
+      "id": "file:ETF-Allocator/tests/unit/test_regime.py",
+      "type": "file",
+      "name": "test_regime.py",
+      "filePath": "ETF-Allocator/tests/unit/test_regime.py",
+      "summary": "thermometer.py 的单元测试：覆盖 4 档各自权益比（100%/70%/40%/30%）、边界值（0.60/0.80/0.90）、不一致冻结（冻结上期、首调用默认、冻结后再一致）、None 缺失冻结、类型为 float、reset_persistence 清理状态。",
+      "tags": ["单元测试", "温度计", "不一致冻结", "全局状态"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "class:ETF-Allocator/tests/unit/test_regime.py:TestEquityRatio",
+      "type": "class",
+      "name": "TestEquityRatio",
+      "filePath": "ETF-Allocator/tests/unit/test_regime.py",
+      "summary": "4 档分级温度计测试类：四档权益比、三个边界值、不一致冻结三连（冻结上期/首调用默认/冻结后重新一致）、None 冻结、float 类型断言。",
+      "tags": ["测试类", "权益比", "不一致冻结"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "class:ETF-Allocator/tests/unit/test_regime.py:TestResetPersistence",
+      "type": "class",
+      "name": "TestResetPersistence",
+      "filePath": "ETF-Allocator/tests/unit/test_regime.py",
+      "summary": "reset_persistence 测试类：重置后首调用不一致应回退默认 100%；reset 后的下一次调用视为首调用。",
+      "tags": ["测试类", "重置"],
+      "complexity": "simple",
+      "language": "python"
+    },
+
+    {
+      "id": "file:ETF-Allocator/tests/unit/test_regression.py",
+      "type": "file",
+      "name": "test_regression.py",
+      "filePath": "ETF-Allocator/tests/unit/test_regression.py",
+      "summary": "回归测试：边界条件与稳定性。覆盖档位边界（_tier 0/1/2/3）、极端分位不崩溃、预算为0、缺失机会分、负权重截断、负分配截断，以及股息率/PE 异常值过滤（>100% 与负值）。",
+      "tags": ["回归测试", "边界", "稳定性", "异常值"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "class:ETF-Allocator/tests/unit/test_regression.py:TestBoundary",
+      "type": "class",
+      "name": "TestBoundary",
+      "filePath": "ETF-Allocator/tests/unit/test_regression.py",
+      "summary": "参数边界测试类：_tier 档位边界、极端分位组合不崩溃、预算0、缺失分、负权重/负分配截断非负。",
+      "tags": ["测试类", "边界", "异常值"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "class:ETF-Allocator/tests/unit/test_regression.py:TestOutlierFiltering",
+      "type": "class",
+      "name": "TestOutlierFiltering",
+      "filePath": "ETF-Allocator/tests/unit/test_regression.py",
+      "summary": "异常值过滤测试类：股息率 >1.0（4.39）被过滤、PE 负值被过滤，结果仍落在 [0,1]。",
+      "tags": ["测试类", "异常值", "股息率", "PE"],
+      "complexity": "simple",
+      "language": "python"
+    }
+  ],
+  "edges": [
+    {"source": "file:ETF-Allocator/src/allocation/allocator.py", "target": "function:ETF-Allocator/src/allocation/allocator.py:compute_gap_scores", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/src/allocation/allocator.py", "target": "function:ETF-Allocator/src/allocation/allocator.py:compute_priority", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/src/allocation/allocator.py", "target": "function:ETF-Allocator/src/allocation/allocator.py:allocate", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/src/allocation/allocator.py", "target": "function:ETF-Allocator/src/allocation/allocator.py:_initial_build_allocation", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/src/allocation/allocator.py", "target": "function:ETF-Allocator/src/allocation/allocator.py:_apply_group_constraint", "type": "contains", "weight": 1.0},
+
+    {"source": "function:ETF-Allocator/src/allocation/allocator.py:allocate", "target": "function:ETF-Allocator/src/allocation/allocator.py:compute_gap_scores", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/src/allocation/allocator.py:allocate", "target": "function:ETF-Allocator/src/allocation/allocator.py:compute_priority", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/src/allocation/allocator.py:allocate", "target": "function:ETF-Allocator/src/allocation/allocator.py:_initial_build_allocation", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/src/allocation/allocator.py:allocate", "target": "function:ETF-Allocator/src/allocation/allocator.py:_apply_group_constraint", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/src/allocation/allocator.py:_initial_build_allocation", "target": "function:ETF-Allocator/src/allocation/allocator.py:_apply_group_constraint", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/src/allocation/allocator.py:compute_priority", "target": "function:ETF-Allocator/src/allocation/allocator.py:compute_gap_scores", "type": "depends_on", "weight": 0.6},
+
+    {"source": "file:ETF-Allocator/src/allocation/allocator.py", "target": "file:ETF-Allocator/config/settings.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/config/settings.py", "target": "file:ETF-Allocator/src/allocation/allocator.py", "type": "configures", "weight": 0.6},
+
+    {"source": "file:ETF-Allocator/src/api/server.py", "target": "function:ETF-Allocator/src/api/server.py:_open_investment_db", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/src/api/server.py", "target": "function:ETF-Allocator/src/api/server.py:_serialize_investment", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/src/api/server.py", "target": "function:ETF-Allocator/src/api/server.py:_investment_response", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/src/api/server.py", "target": "function:ETF-Allocator/src/api/server.py:_import_run_functions", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/src/api/server.py", "target": "function:ETF-Allocator/src/api/server.py:_midpoint_weights", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/src/api/server.py", "target": "class:ETF-Allocator/src/api/server.py:ReportParams", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/src/api/server.py", "target": "class:ETF-Allocator/src/api/server.py:InvestmentRecordParams", "type": "contains", "weight": 1.0},
+
+    {"source": "file:ETF-Allocator/src/api/server.py", "target": "endpoint:ETF-Allocator/src/api/server.py:GET_api_report", "type": "routes", "weight": 0.8},
+    {"source": "file:ETF-Allocator/src/api/server.py", "target": "endpoint:ETF-Allocator/src/api/server.py:POST_api_report", "type": "routes", "weight": 0.8},
+    {"source": "file:ETF-Allocator/src/api/server.py", "target": "endpoint:ETF-Allocator/src/api/server.py:GET_api_history", "type": "routes", "weight": 0.8},
+    {"source": "file:ETF-Allocator/src/api/server.py", "target": "endpoint:ETF-Allocator/src/api/server.py:GET_api_investments", "type": "routes", "weight": 0.8},
+    {"source": "file:ETF-Allocator/src/api/server.py", "target": "endpoint:ETF-Allocator/src/api/server.py:POST_api_investments", "type": "routes", "weight": 0.8},
+    {"source": "file:ETF-Allocator/src/api/server.py", "target": "endpoint:ETF-Allocator/src/api/server.py:DELETE_api_investments", "type": "routes", "weight": 0.8},
+    {"source": "file:ETF-Allocator/src/api/server.py", "target": "endpoint:ETF-Allocator/src/api/server.py:GET_spa_fallback", "type": "routes", "weight": 0.8},
+
+    {"source": "endpoint:ETF-Allocator/src/api/server.py:GET_api_investments", "target": "function:ETF-Allocator/src/api/server.py:_investment_response", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/src/api/server.py:_investment_response", "target": "function:ETF-Allocator/src/api/server.py:_serialize_investment", "type": "calls", "weight": 0.8},
+    {"source": "endpoint:ETF-Allocator/src/api/server.py:POST_api_investments", "target": "function:ETF-Allocator/src/api/server.py:_open_investment_db", "type": "calls", "weight": 0.8},
+    {"source": "endpoint:ETF-Allocator/src/api/server.py:POST_api_investments", "target": "function:ETF-Allocator/src/api/server.py:_serialize_investment", "type": "calls", "weight": 0.8},
+    {"source": "endpoint:ETF-Allocator/src/api/server.py:GET_api_investments", "target": "function:ETF-Allocator/src/api/server.py:_open_investment_db", "type": "calls", "weight": 0.8},
+    {"source": "endpoint:ETF-Allocator/src/api/server.py:DELETE_api_investments", "target": "function:ETF-Allocator/src/api/server.py:_open_investment_db", "type": "calls", "weight": 0.8},
+    {"source": "endpoint:ETF-Allocator/src/api/server.py:GET_api_report", "target": "function:ETF-Allocator/src/api/server.py:_import_run_functions", "type": "calls", "weight": 0.8},
+    {"source": "endpoint:ETF-Allocator/src/api/server.py:POST_api_report", "target": "function:ETF-Allocator/src/api/server.py:_import_run_functions", "type": "calls", "weight": 0.8},
+    {"source": "endpoint:ETF-Allocator/src/api/server.py:POST_api_report", "target": "function:ETF-Allocator/src/api/server.py:_midpoint_weights", "type": "calls", "weight": 0.8},
+
+    {"source": "file:ETF-Allocator/src/api/server.py", "target": "file:ETF-Allocator/config/settings.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/src/api/server.py", "target": "file:ETF-Allocator/src/allocation/allocator.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/src/api/server.py", "target": "file:ETF-Allocator/src/constraints/portfolio.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/src/api/server.py", "target": "file:ETF-Allocator/src/execution/bond_liquidity.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/src/api/server.py", "target": "file:ETF-Allocator/src/regime/thermometer.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/src/api/server.py", "target": "file:ETF-Allocator/src/risk/controller.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/src/api/server.py", "target": "file:ETF-Allocator/src/scoring/engine.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/src/api/server.py", "target": "file:ETF-Allocator/src/store/schema.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/src/api/server.py", "target": "file:ETF-Allocator/src/api/__init__.py", "type": "imports", "weight": 0.7},
+
+    {"source": "endpoint:ETF-Allocator/src/api/server.py:GET_api_report", "target": "function:ETF-Allocator/src/allocation/allocator.py:allocate", "type": "calls", "weight": 0.8},
+    {"source": "endpoint:ETF-Allocator/src/api/server.py:POST_api_report", "target": "function:ETF-Allocator/src/allocation/allocator.py:allocate", "type": "calls", "weight": 0.8},
+    {"source": "endpoint:ETF-Allocator/src/api/server.py:GET_api_report", "target": "function:ETF-Allocator/src/constraints/portfolio.py:apply_constraints", "type": "calls", "weight": 0.8},
+    {"source": "endpoint:ETF-Allocator/src/api/server.py:POST_api_report", "target": "function:ETF-Allocator/src/constraints/portfolio.py:apply_constraints", "type": "calls", "weight": 0.8},
+    {"source": "endpoint:ETF-Allocator/src/api/server.py:GET_api_report", "target": "function:ETF-Allocator/src/regime/thermometer.py:resolve_equity_ratio", "type": "calls", "weight": 0.8},
+    {"source": "endpoint:ETF-Allocator/src/api/server.py:POST_api_report", "target": "function:ETF-Allocator/src/regime/thermometer.py:resolve_equity_ratio", "type": "calls", "weight": 0.8},
+    {"source": "endpoint:ETF-Allocator/src/api/server.py:GET_api_report", "target": "function:ETF-Allocator/src/regime/thermometer.py:read_persistence", "type": "calls", "weight": 0.8},
+    {"source": "endpoint:ETF-Allocator/src/api/server.py:POST_api_report", "target": "function:ETF-Allocator/src/regime/thermometer.py:read_persistence", "type": "calls", "weight": 0.8},
+    {"source": "endpoint:ETF-Allocator/src/api/server.py:GET_api_report", "target": "function:ETF-Allocator/src/regime/thermometer.py:_tier", "type": "calls", "weight": 0.8},
+
+    {"source": "file:ETF-Allocator/config/settings.py", "target": "file:ETF-Allocator/src/api/server.py", "type": "configures", "weight": 0.6},
+
+    {"source": "file:ETF-Allocator/src/constraints/portfolio.py", "target": "function:ETF-Allocator/src/constraints/portfolio.py:buy_coefficient", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/src/constraints/portfolio.py", "target": "function:ETF-Allocator/src/constraints/portfolio.py:max_buy_amount", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/src/constraints/portfolio.py", "target": "function:ETF-Allocator/src/constraints/portfolio.py:group_weight", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/src/constraints/portfolio.py", "target": "function:ETF-Allocator/src/constraints/portfolio.py:check_factor_group_constraint", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/src/constraints/portfolio.py", "target": "function:ETF-Allocator/src/constraints/portfolio.py:apply_constraints", "type": "contains", "weight": 1.0},
+
+    {"source": "function:ETF-Allocator/src/constraints/portfolio.py:apply_constraints", "target": "function:ETF-Allocator/src/constraints/portfolio.py:buy_coefficient", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/src/constraints/portfolio.py:apply_constraints", "target": "function:ETF-Allocator/src/constraints/portfolio.py:max_buy_amount", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/src/constraints/portfolio.py:apply_constraints", "target": "function:ETF-Allocator/src/constraints/portfolio.py:group_weight", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/src/constraints/portfolio.py:check_factor_group_constraint", "target": "function:ETF-Allocator/src/constraints/portfolio.py:group_weight", "type": "calls", "weight": 0.8},
+
+    {"source": "file:ETF-Allocator/src/constraints/portfolio.py", "target": "file:ETF-Allocator/config/settings.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/config/settings.py", "target": "file:ETF-Allocator/src/constraints/portfolio.py", "type": "configures", "weight": 0.6},
+
+    {"source": "file:ETF-Allocator/src/regime/thermometer.py", "target": "function:ETF-Allocator/src/regime/thermometer.py:_tier", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/src/regime/thermometer.py", "target": "function:ETF-Allocator/src/regime/thermometer.py:equity_ratio", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/src/regime/thermometer.py", "target": "function:ETF-Allocator/src/regime/thermometer.py:resolve_equity_ratio", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/src/regime/thermometer.py", "target": "function:ETF-Allocator/src/regime/thermometer.py:reset_persistence", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/src/regime/thermometer.py", "target": "function:ETF-Allocator/src/regime/thermometer.py:load_persistence", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/src/regime/thermometer.py", "target": "function:ETF-Allocator/src/regime/thermometer.py:read_persistence", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/src/regime/thermometer.py", "target": "function:ETF-Allocator/src/regime/thermometer.py:save_persistence", "type": "contains", "weight": 1.0},
+
+    {"source": "function:ETF-Allocator/src/regime/thermometer.py:equity_ratio", "target": "function:ETF-Allocator/src/regime/thermometer.py:_tier", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/src/regime/thermometer.py:resolve_equity_ratio", "target": "function:ETF-Allocator/src/regime/thermometer.py:_tier", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/src/regime/thermometer.py:load_persistence", "target": "function:ETF-Allocator/src/regime/thermometer.py:reset_persistence", "type": "calls", "weight": 0.8},
+    {"source": "function:ETF-Allocator/src/regime/thermometer.py:resolve_equity_ratio", "target": "function:ETF-Allocator/src/regime/thermometer.py:equity_ratio", "type": "depends_on", "weight": 0.6},
+
+    {"source": "file:ETF-Allocator/src/regime/thermometer.py", "target": "file:ETF-Allocator/config/settings.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/config/settings.py", "target": "file:ETF-Allocator/src/regime/thermometer.py", "type": "configures", "weight": 0.6},
+
+    {"source": "file:ETF-Allocator/tests/integration/test_api_idempotency.py", "target": "function:ETF-Allocator/tests/integration/test_api_idempotency.py:test_get_report_does_not_create_or_change_bond_state", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/integration/test_api_idempotency.py", "target": "file:ETF-Allocator/src/api/__init__.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/tests/integration/test_api_idempotency.py", "target": "file:ETF-Allocator/src/api/server.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/tests/integration/test_api_idempotency.py", "target": "endpoint:ETF-Allocator/src/api/server.py:GET_api_report", "type": "tested_by", "weight": 0.5},
+    {"source": "endpoint:ETF-Allocator/src/api/server.py:GET_api_report", "target": "file:ETF-Allocator/tests/integration/test_api_idempotency.py", "type": "tested_by", "weight": 0.5},
+
+    {"source": "file:ETF-Allocator/tests/integration/test_e2e_scenarios.py", "target": "function:ETF-Allocator/tests/integration/test_e2e_scenarios.py:test_overheat_market_limits_equity", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/integration/test_e2e_scenarios.py", "target": "function:ETF-Allocator/tests/integration/test_e2e_scenarios.py:test_cool_market_fills_gaps", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/integration/test_e2e_scenarios.py", "target": "function:ETF-Allocator/tests/integration/test_e2e_scenarios.py:test_initial_build_respects_caps", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/integration/test_e2e_scenarios.py", "target": "function:ETF-Allocator/tests/integration/test_e2e_scenarios.py:test_constraint_integration_prevents_overweight", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/integration/test_e2e_scenarios.py", "target": "file:ETF-Allocator/src/allocation/allocator.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/tests/integration/test_e2e_scenarios.py", "target": "file:ETF-Allocator/src/constraints/portfolio.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/tests/integration/test_e2e_scenarios.py", "target": "file:ETF-Allocator/src/regime/thermometer.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/tests/integration/test_e2e_scenarios.py", "target": "file:ETF-Allocator/src/risk/controller.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/tests/integration/test_e2e_scenarios.py", "target": "file:ETF-Allocator/src/allocation/allocator.py", "type": "tested_by", "weight": 0.5},
+    {"source": "file:ETF-Allocator/tests/integration/test_e2e_scenarios.py", "target": "file:ETF-Allocator/src/constraints/portfolio.py", "type": "tested_by", "weight": 0.5},
+    {"source": "file:ETF-Allocator/tests/integration/test_e2e_scenarios.py", "target": "file:ETF-Allocator/src/regime/thermometer.py", "type": "tested_by", "weight": 0.5},
+
+    {"source": "file:ETF-Allocator/tests/unit/test_allocation.py", "target": "class:ETF-Allocator/tests/unit/test_allocation.py:TestBasicAllocation", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/unit/test_allocation.py", "target": "class:ETF-Allocator/tests/unit/test_allocation.py:TestBuyCoefficient", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/unit/test_allocation.py", "target": "class:ETF-Allocator/tests/unit/test_allocation.py:TestOpportunityThreshold", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/unit/test_allocation.py", "target": "file:ETF-Allocator/src/allocation/allocator.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/src/allocation/allocator.py", "target": "file:ETF-Allocator/tests/unit/test_allocation.py", "type": "tested_by", "weight": 0.5},
+
+    {"source": "file:ETF-Allocator/tests/unit/test_constraints.py", "target": "class:ETF-Allocator/tests/unit/test_constraints.py:TestBuyCoefficient", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/unit/test_constraints.py", "target": "class:ETF-Allocator/tests/unit/test_constraints.py:TestMaxBuyAmount", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/unit/test_constraints.py", "target": "class:ETF-Allocator/tests/unit/test_constraints.py:TestGroupWeight", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/unit/test_constraints.py", "target": "class:ETF-Allocator/tests/unit/test_constraints.py:TestFactorGroupConstraint", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/unit/test_constraints.py", "target": "class:ETF-Allocator/tests/unit/test_constraints.py:TestApplyConstraints", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/unit/test_constraints.py", "target": "file:ETF-Allocator/src/constraints/portfolio.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/src/constraints/portfolio.py", "target": "file:ETF-Allocator/tests/unit/test_constraints.py", "type": "tested_by", "weight": 0.5},
+
+    {"source": "file:ETF-Allocator/tests/unit/test_investment_records.py", "target": "function:ETF-Allocator/tests/unit/test_investment_records.py:test_empty_investment_summary", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/unit/test_investment_records.py", "target": "function:ETF-Allocator/tests/unit/test_investment_records.py:test_create_list_and_summarize_investments", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/unit/test_investment_records.py", "target": "function:ETF-Allocator/tests/unit/test_investment_records.py:test_detailed_investment_derives_total_and_persists_all_assets", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/unit/test_investment_records.py", "target": "function:ETF-Allocator/tests/unit/test_investment_records.py:test_invalid_investment_details_are_rejected", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/unit/test_investment_records.py", "target": "function:ETF-Allocator/tests/unit/test_investment_records.py:test_duplicate_investment_returns_conflict", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/unit/test_investment_records.py", "target": "function:ETF-Allocator/tests/unit/test_investment_records.py:test_future_date_is_rejected", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/unit/test_investment_records.py", "target": "function:ETF-Allocator/tests/unit/test_investment_records.py:test_delete_investment_updates_summary_and_cascades_details", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/unit/test_investment_records.py", "target": "file:ETF-Allocator/src/api/__init__.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/tests/unit/test_investment_records.py", "target": "file:ETF-Allocator/src/api/server.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/tests/unit/test_investment_records.py", "target": "endpoint:ETF-Allocator/src/api/server.py:GET_api_investments", "type": "tested_by", "weight": 0.5},
+    {"source": "file:ETF-Allocator/tests/unit/test_investment_records.py", "target": "endpoint:ETF-Allocator/src/api/server.py:POST_api_investments", "type": "tested_by", "weight": 0.5},
+    {"source": "file:ETF-Allocator/tests/unit/test_investment_records.py", "target": "endpoint:ETF-Allocator/src/api/server.py:DELETE_api_investments", "type": "tested_by", "weight": 0.5},
+
+    {"source": "file:ETF-Allocator/tests/unit/test_regime.py", "target": "class:ETF-Allocator/tests/unit/test_regime.py:TestEquityRatio", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/unit/test_regime.py", "target": "class:ETF-Allocator/tests/unit/test_regime.py:TestResetPersistence", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/unit/test_regime.py", "target": "file:ETF-Allocator/src/regime/thermometer.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/src/regime/thermometer.py", "target": "file:ETF-Allocator/tests/unit/test_regime.py", "type": "tested_by", "weight": 0.5},
+
+    {"source": "file:ETF-Allocator/tests/unit/test_regression.py", "target": "class:ETF-Allocator/tests/unit/test_regression.py:TestBoundary", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/unit/test_regression.py", "target": "class:ETF-Allocator/tests/unit/test_regression.py:TestOutlierFiltering", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/tests/unit/test_regression.py", "target": "file:ETF-Allocator/src/allocation/allocator.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/tests/unit/test_regression.py", "target": "file:ETF-Allocator/src/constraints/portfolio.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/tests/unit/test_regression.py", "target": "file:ETF-Allocator/src/regime/thermometer.py", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/src/allocation/allocator.py", "target": "file:ETF-Allocator/tests/unit/test_regression.py", "type": "tested_by", "weight": 0.5},
+    {"source": "file:ETF-Allocator/src/constraints/portfolio.py", "target": "file:ETF-Allocator/tests/unit/test_regression.py", "type": "tested_by", "weight": 0.5},
+    {"source": "file:ETF-Allocator/src/regime/thermometer.py", "target": "file:ETF-Allocator/tests/unit/test_regression.py", "type": "tested_by", "weight": 0.5}
+  ]
+}

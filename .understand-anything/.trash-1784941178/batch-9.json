@@ -1,0 +1,314 @@
+{
+  "batchIndex": 9,
+  "nodes": [
+    {
+      "id": "pipeline:ETF-Allocator/.github/workflows/test.yml",
+      "type": "pipeline",
+      "name": "test.yml",
+      "filePath": "ETF-Allocator/.github/workflows/test.yml",
+      "summary": "GitHub Actions CI 流水线，在 push 和 pull_request 时触发。安装项目依赖后运行 pytest 单元测试（跳过 integration 标记和 API 测试）并收集覆盖率，再单独运行公式集成测试。",
+      "tags": ["CI", "GitHub Actions", "pipeline", "测试", "pytest", "workflow"],
+      "complexity": "simple",
+      "language": "yaml"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/e2e/test_dashboard.py",
+      "type": "file",
+      "name": "test_dashboard.py",
+      "filePath": "ETF-Allocator/dashboard/e2e/test_dashboard.py",
+      "summary": "Playwright E2E 测试（v1）：用 headless Chromium 加载本地 React dashboard，校验页面标题、ripple-grid 背景、glass 玻璃面板、拖拽手柄、主题切换按钮、控制台无报错、温度计/权益/因子文字内容，并截取移动端响应式截图。",
+      "tags": ["test", "e2e", "Playwright", "dashboard", "测试"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/e2e/test_regressions.py",
+      "type": "file",
+      "name": "test_regressions.py",
+      "filePath": "ETF-Allocator/dashboard/e2e/test_regressions.py",
+      "summary": "Playwright 回归测试：验证当前 React dashboard 的关键交互——市场温度计可见、本月概览显示、/simulator 路由被重定向回首页、历史趋势页 PE 分位走势渲染、移动端汉堡菜单展开资金记录、以及浏览器控制台零错误。",
+      "tags": ["test", "e2e", "Playwright", "regression", "dashboard", "测试"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/e2e/test_v2.py",
+      "type": "file",
+      "name": "test_v2.py",
+      "filePath": "ETF-Allocator/dashboard/e2e/test_v2.py",
+      "summary": "Playwright E2E 测试 v2：增加加载/错误状态处理（等待 API、点击重试按钮），校验 ETF Allocator 标题、glass 面板、ripple 背景、主题切换、控制台零错误、温度计/权益/因子文字及移动端响应式。",
+      "tags": ["test", "e2e", "Playwright", "dashboard", "测试"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/e2e/test_v3.py",
+      "type": "file",
+      "name": "test_v3.py",
+      "filePath": "ETF-Allocator/dashboard/e2e/test_v3.py",
+      "summary": "Playwright E2E 测试 v3：修复编码并增加重试，3 次重试加载页面，处理加载/错误状态并点击重试，校验标题/glass/ripple、主题按钮及颜色选项、控制台错误与警告、widget 内容与因子分组、移动端视口。",
+      "tags": ["test", "e2e", "Playwright", "dashboard", "测试"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/e2e/test_v4.py",
+      "type": "file",
+      "name": "test_v4.py",
+      "filePath": "ETF-Allocator/dashboard/e2e/test_v4.py",
+      "summary": "Playwright E2E 测试 v4：等待 React hydration（body 长度 > 5000 字符，最多 10 次尝试），校验 API 连通性（无卡在 loading、无报错）、ETF Allocator 标题、本月概览 NavBar、glass-card CSS、权益与因子分组、按钮存在及控制台零错误，并输出调试统计。",
+      "tags": ["test", "e2e", "Playwright", "dashboard", "测试"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/eslint.config.js",
+      "type": "file",
+      "name": "eslint.config.js",
+      "filePath": "ETF-Allocator/dashboard/eslint.config.js",
+      "summary": "ESLint flat config：对 ts/tsx 文件启用 JS recommended、TypeScript recommended、React Hooks 与 React Refresh 规则集，全局忽略 dist 目录。",
+      "tags": ["config", "eslint", "lint", "dashboard"],
+      "complexity": "simple",
+      "language": "javascript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/public/manifest.json",
+      "type": "file",
+      "name": "manifest.json",
+      "filePath": "ETF-Allocator/dashboard/public/manifest.json",
+      "summary": "PWA manifest：定义 ETF Allocator 应用名称、独立显示模式、背景色 #F8F6FF、主题色 #7C3AED，以及 192/512 两个尺寸图标。",
+      "tags": ["config", "PWA", "manifest", "dashboard"],
+      "complexity": "simple",
+      "language": "json"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/components/layout/GlassPane.tsx",
+      "type": "file",
+      "name": "GlassPane.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/components/layout/GlassPane.tsx",
+      "summary": "通用玻璃态容器组件：基于 framer-motion 的 motion.div，hover 时动态改变边框色与发光阴影（oklch 色彩），spring 弹性过渡，支持 children、className、onClick 属性。",
+      "tags": ["component", "layout", "glass", "framer-motion", "dashboard"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/components/layout/RippleBackground.tsx",
+      "type": "file",
+      "name": "RippleBackground.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/components/layout/RippleBackground.tsx",
+      "summary": "全屏点阵背景组件：渲染一个 fixed 定位、z-index -10、opacity 0.6 的 ripple-grid div，作为 dashboard 暗色模式下的点阵纹理背景，不拦截指针事件。",
+      "tags": ["component", "layout", "background", "dashboard"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/hooks/useDashboardData.test.ts",
+      "type": "file",
+      "name": "useDashboardData.test.ts",
+      "filePath": "ETF-Allocator/dashboard/src/hooks/useDashboardData.test.ts",
+      "summary": "Vitest 单元测试：验证 useDashboardData hook 的 activityLog 累积逻辑——seenDates 按日期去重、slice(-19) 保留最近 20 条。覆盖跨轮询去重和上限裁剪两个用例。",
+      "tags": ["test", "unit", "vitest", "hook", "dashboard", "测试"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/index.css",
+      "type": "file",
+      "name": "index.css",
+      "filePath": "ETF-Allocator/dashboard/src/index.css",
+      "summary": "全局样式与设计令牌：导入 DM Sans/Mono 字体、Tailwind 与 KaTeX CSS。定义 oklch 220° 色相系统（chromatic/surface/语义/可视化色板）、亮暗模式变量、glass-card 玻璃态、gradient-text、react-grid 占位与 ripple-grid 点阵背景。",
+      "tags": ["style", "css", "design-tokens", "theme", "dashboard"],
+      "complexity": "moderate",
+      "language": "css"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/pages/_archive/Dashboard.tsx",
+      "type": "file",
+      "name": "Dashboard.tsx",
+      "filePath": "ETF-Allocator/dashboard/src/pages/_archive/Dashboard.tsx",
+      "summary": "已归档的旧版 dashboard 主页面组件：基于 recharts 渲染饼图（VALUE/GROWTH/DEFENSE 配置）和折线图（PE 分位走势），使用 useReport/useSimulate/useHistory hooks，含 GlassCard/Skeleton 加载态。被 AiriDashboard.tsx 取代。",
+      "tags": ["page", "archive", "dashboard", "deprecated"],
+      "complexity": "moderate",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/src/test-setup.ts",
+      "type": "file",
+      "name": "test-setup.ts",
+      "filePath": "ETF-Allocator/dashboard/src/test-setup.ts",
+      "summary": "Vitest 测试环境初始化文件：导入 @testing-library/jest-dom 以提供 DOM 断言匹配器（如 toBeVisible、toBeInTheDocument），由 vitest.config.ts 的 setupFiles 引用。",
+      "tags": ["config", "test", "vitest", "setup", "dashboard"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/vite.config.ts",
+      "type": "file",
+      "name": "vite.config.ts",
+      "filePath": "ETF-Allocator/dashboard/vite.config.ts",
+      "summary": "Vite 构建配置：启用 React 与 Tailwind 插件，配置 @ 别名指向 ./src，开发服务器将 /api 请求代理到 http://localhost:8000（FastAPI 后端）。",
+      "tags": ["config", "vite", "build", "dashboard"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/dashboard/vitest.config.ts",
+      "type": "file",
+      "name": "vitest.config.ts",
+      "filePath": "ETF-Allocator/dashboard/vitest.config.ts",
+      "summary": "Vitest 测试运行配置：使用 jsdom 环境、全局 API，加载 ./src/test-setup.ts 作为 setup 文件，集成 React 插件。",
+      "tags": ["config", "vitest", "test", "dashboard"],
+      "complexity": "simple",
+      "language": "typescript"
+    },
+    {
+      "id": "file:ETF-Allocator/data/DATA_IMPORT_LOG.md",
+      "type": "file",
+      "name": "DATA_IMPORT_LOG.md",
+      "filePath": "ETF-Allocator/data/DATA_IMPORT_LOG.md",
+      "summary": "数据补全记录文档（2026-06-01）：记录 6 个 ETF/LOF 价格数据（AkShare/腾讯 API）、6 个指数估值数据（PE/PB/DY，部分 PB 来自 Tushare 成分股加权）的导入情况，并列出股息率历史不足等待改进项与数据源说明。",
+      "tags": ["docs", "data", "import", "记录"],
+      "complexity": "simple",
+      "language": "markdown"
+    },
+    {
+      "id": "file:ETF-Allocator/scripts/AGENTS.md",
+      "type": "file",
+      "name": "AGENTS.md",
+      "filePath": "ETF-Allocator/scripts/AGENTS.md",
+      "summary": "scripts 目录的 agent 指南：说明各数据导入脚本（import_data/import_pb_all/import_pb_one/auto_import_pb/tushare_import）的用途与适用场景，约定数据写入走 src/store/schema.py、Tushare 限速处理、输出数据库路径，并列出反模式与常用命令。",
+      "tags": ["docs", "guide", "scripts", "data-import"],
+      "complexity": "simple",
+      "language": "markdown"
+    },
+    {
+      "id": "file:ETF-Allocator/scripts/auto_import_pb.bat",
+      "type": "file",
+      "name": "auto_import_pb.bat",
+      "filePath": "ETF-Allocator/scripts/auto_import_pb.bat",
+      "summary": "Windows 批处理包装脚本：设置 UTF-8 代码页（chcp 65001）后调用同目录的 auto_import_pb.py，用于双击启动 Tushare PB 自动导入（约 4.5 小时）。",
+      "tags": ["script", "batch", "windows", "data-import"],
+      "complexity": "simple",
+      "language": "batch"
+    },
+    {
+      "id": "file:ETF-Allocator/scripts/auto_import_pb.py",
+      "type": "file",
+      "name": "auto_import_pb.py",
+      "filePath": "ETF-Allocator/scripts/auto_import_pb.py",
+      "summary": "自动定时 PB 导入脚本：循环检查 4 个行业指数（白酒/银行/红利/科创50）缺失的 PB 数据，每次通过 Tushare index_dailybasic 拉取并写入 index_valuation 表，每次请求间隔 65 分钟以规避免费版 1次/小时限频，含倒计时与状态打印，最多 10 轮。",
+      "tags": ["script", "python", "data-import", "tushare", "PB"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/scripts/import_pb_all.py",
+      "type": "file",
+      "name": "import_pb_all.py",
+      "filePath": "ETF-Allocator/scripts/import_pb_all.py",
+      "summary": "批量 PB 导入脚本：对 4 个行业指数一次性导入 PE+PB 数据到 index_valuation 表，内建 Tushare 限频处理（每指数间隔 65 分钟，每指数最多重试 3 次），含 has_pb 跳过逻辑与进度打印。总运行约 4.5 小时。",
+      "tags": ["script", "python", "data-import", "tushare", "PB"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/scripts/import_pb_one.py",
+      "type": "file",
+      "name": "import_pb_one.py",
+      "filePath": "ETF-Allocator/scripts/import_pb_one.py",
+      "summary": "单指数 PB 导入脚本：自动找出第一个仍缺 PB 的指数，通过 Tushare index_dailybasic 拉取 PE+PB 写入 index_valuation 表后退出。设计为每小时运行一次直到 4 个指数全部完成，含限频错误识别与进度打印。",
+      "tags": ["script", "python", "data-import", "tushare", "PB"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/scripts/import_pb.py",
+      "type": "file",
+      "name": "import_pb.py",
+      "filePath": "ETF-Allocator/scripts/import_pb.py",
+      "summary": "PB 导入核心脚本：用 Tushare index_dailybasic 拉取 4 个行业指数（白酒/银行/红利/科创50）的 PE+PB，UPSERT 写入 index_valuation 表（ON CONFLICT 合并），含速率限制检测与单次重试、每指数 sleep 65 秒限速，最后校验入库行数。",
+      "tags": ["script", "python", "data-import", "tushare", "PB"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/src/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "ETF-Allocator/src/__init__.py",
+      "summary": "Python 包标记文件（src 包），内容为空，使 src 目录可作为包导入。",
+      "tags": ["package", "init", "python"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "file:ETF-Allocator/src/allocation/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "ETF-Allocator/src/allocation/__init__.py",
+      "summary": "Python 包标记文件（src.allocation 子包），内容为空，标识资金配置模块为一个可导入包。",
+      "tags": ["package", "init", "python", "allocation"],
+      "complexity": "simple",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/scripts/auto_import_pb.py:import_one",
+      "type": "function",
+      "name": "import_one",
+      "filePath": "ETF-Allocator/scripts/auto_import_pb.py",
+      "summary": "导入单个指数的 PB 数据：调用 Tushare index_dailybasic 拉取 PE+PB，逐行 UPSERT 到 index_valuation 表，成功返回 True、异常返回 False。",
+      "tags": ["function", "data-import", "tushare", "测试"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/scripts/import_pb_all.py:import_one",
+      "type": "function",
+      "name": "import_one",
+      "filePath": "ETF-Allocator/scripts/import_pb_all.py",
+      "summary": "导入单个指数 PB 数据的封装函数：拉取 index_dailybasic、UPSERT 写入 index_valuation，识别限频错误后返回 False 触发外层重试。",
+      "tags": ["function", "data-import", "tushare"],
+      "complexity": "moderate",
+      "language": "python"
+    },
+    {
+      "id": "function:ETF-Allocator/dashboard/e2e/test_regressions.py:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "ETF-Allocator/dashboard/e2e/test_regressions.py",
+      "summary": "Playwright 回归测试主入口：编排桌面端温度计/概览校验、simulator 重定向、trends 页导航、移动端菜单与控制台错误断言的完整流程。",
+      "tags": ["function", "e2e", "Playwright", "test", "测试"],
+      "complexity": "moderate",
+      "language": "python"
+    }
+  ],
+  "edges": [
+    {"source": "file:ETF-Allocator/dashboard/src/hooks/useDashboardData.ts", "target": "file:ETF-Allocator/dashboard/src/hooks/useDashboardData.test.ts", "type": "tested_by", "weight": 0.5},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx", "target": "file:ETF-Allocator/dashboard/e2e/test_dashboard.py", "type": "tested_by", "weight": 0.5},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx", "target": "file:ETF-Allocator/dashboard/e2e/test_regressions.py", "type": "tested_by", "weight": 0.5},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx", "target": "file:ETF-Allocator/dashboard/e2e/test_v2.py", "type": "tested_by", "weight": 0.5},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx", "target": "file:ETF-Allocator/dashboard/e2e/test_v3.py", "type": "tested_by", "weight": 0.5},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/AiriDashboard.tsx", "target": "file:ETF-Allocator/dashboard/e2e/test_v4.py", "type": "tested_by", "weight": 0.5},
+    {"source": "file:ETF-Allocator/dashboard/src/pages/Trends.tsx", "target": "file:ETF-Allocator/dashboard/e2e/test_regressions.py", "type": "tested_by", "weight": 0.5},
+    {"source": "file:ETF-Allocator/dashboard/src/components/layout/GlassPane.tsx", "target": "file:ETF-Allocator/dashboard/e2e/test_dashboard.py", "type": "tested_by", "weight": 0.5},
+    {"source": "file:ETF-Allocator/dashboard/src/components/layout/RippleBackground.tsx", "target": "file:ETF-Allocator/dashboard/e2e/test_dashboard.py", "type": "tested_by", "weight": 0.5},
+    {"source": "file:ETF-Allocator/dashboard/src/index.css", "target": "file:ETF-Allocator/dashboard/e2e/test_v4.py", "type": "tested_by", "weight": 0.5},
+
+    {"source": "pipeline:ETF-Allocator/.github/workflows/test.yml", "target": "file:ETF-Allocator/dashboard/e2e/test_dashboard.py", "type": "triggers", "weight": 0.6},
+    {"source": "pipeline:ETF-Allocator/.github/workflows/test.yml", "target": "file:ETF-Allocator/dashboard/e2e/test_regressions.py", "type": "triggers", "weight": 0.6},
+    {"source": "pipeline:ETF-Allocator/.github/workflows/test.yml", "target": "file:ETF-Allocator/dashboard/e2e/test_v2.py", "type": "triggers", "weight": 0.6},
+    {"source": "pipeline:ETF-Allocator/.github/workflows/test.yml", "target": "file:ETF-Allocator/dashboard/e2e/test_v3.py", "type": "triggers", "weight": 0.6},
+    {"source": "pipeline:ETF-Allocator/.github/workflows/test.yml", "target": "file:ETF-Allocator/dashboard/e2e/test_v4.py", "type": "triggers", "weight": 0.6},
+
+    {"source": "file:ETF-Allocator/dashboard/vitest.config.ts", "target": "file:ETF-Allocator/dashboard/src/test-setup.ts", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/vitest.config.ts", "target": "file:ETF-Allocator/dashboard/src/hooks/useDashboardData.test.ts", "type": "triggers", "weight": 0.6},
+
+    {"source": "file:ETF-Allocator/scripts/auto_import_pb.bat", "target": "file:ETF-Allocator/scripts/auto_import_pb.py", "type": "calls", "weight": 0.8},
+    {"source": "file:ETF-Allocator/scripts/auto_import_pb.py", "target": "function:ETF-Allocator/scripts/auto_import_pb.py:import_one", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/scripts/import_pb_all.py", "target": "function:ETF-Allocator/scripts/import_pb_all.py:import_one", "type": "contains", "weight": 1.0},
+    {"source": "file:ETF-Allocator/dashboard/e2e/test_regressions.py", "target": "function:ETF-Allocator/dashboard/e2e/test_regressions.py:main", "type": "contains", "weight": 1.0},
+
+    {"source": "file:ETF-Allocator/dashboard/src/pages/_archive/Dashboard.tsx", "target": "file:ETF-Allocator/dashboard/src/index.css", "type": "imports", "weight": 0.7},
+    {"source": "file:ETF-Allocator/dashboard/src/main.tsx", "target": "file:ETF-Allocator/dashboard/src/index.css", "type": "imports", "weight": 0.7}
+  ]
+}
