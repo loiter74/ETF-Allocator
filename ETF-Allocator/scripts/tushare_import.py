@@ -39,7 +39,7 @@ DB_PATH = PROJECT_ROOT / 'data' / 'db' / 'etf_data.db'
 os.environ['NO_PROXY'] = '*'
 os.environ['no_proxy'] = '*'
 
-# 指数代码映射
+# 指数代码映射（用于 index_dailybasic 等宽基接口；行业指数不被覆盖，仅宽基有效）
 INDEX_CODE_MAP = {
     '000300': '000300.SH',
     '000985': '000985.SH',
@@ -47,6 +47,16 @@ INDEX_CODE_MAP = {
     '399986': '399986.SZ',
     '000922': '000922.SH',
     '000688': '000688.SH',
+}
+
+# 成分股权重接口（index_weight）专用代码。
+# 注意：中证红利的权重代码是 000922.CSI（中证指数公司后缀），不是 .SH；
+# 用 .SH 会让 index_weight 返回 0 行，导致红利成分股加权全部失败。
+INDEX_WEIGHT_CODE = {
+    '399986': '399986.SZ',   # 中证银行
+    '399997': '399997.SZ',   # 中证白酒
+    '000922': '000922.CSI',  # 中证红利 ★ 必须用 .CSI
+    '000688': '000688.SH',   # 科创50
 }
 
 INDEX_INFO = {
@@ -61,19 +71,16 @@ INDEX_INFO = {
 # 按评分影响优先级排序：银行ETF用PB(权重0.5) → 其余PB用于非评分用途
 VALUATION_PRIORITY = ['399986', '399997', '000922', '000688', '000300', '000985']
 
-# 成分股加权PB/DY计算参数（index_dailybasic不支持行业指数时使用）
-PB_FROM_CONSTITUENTS = {
-    '399986': '399986.SZ',   # 中证银行
-    '399997': '399997.SZ',   # 中证白酒
-    '000688': '000688.SH',   # 科创50
-}
+# 成分股加权PB计算参数（index_dailybasic不支持行业指数时使用）
+# 用 INDEX_WEIGHT_CODE 里的代码拿权重。
+PB_FROM_CONSTITUENTS = ['399986', '399997', '000922', '000688']
 
-# 成分股加权DY计算参数（000922需要用较早日期获取权重）
+# 成分股加权DY计算参数（权重起始日；中证红利权重从 .CSI 拿，无需较早日期）
 DY_FROM_CONSTITUENTS = {
-    '399986': ('399986.SZ', '20260101'),   # 中证银行
-    '399997': ('399997.SZ', '20260101'),   # 中证白酒
-    '000922': ('000922.SH', '20180101'),   # 中证红利（需较早日期）
-    '000688': ('000688.SH', '20260101'),   # 科创50
+    '399986': '20260101',   # 中证银行
+    '399997': '20260101',   # 中证白酒
+    '000922': '20200101',   # 中证红利
+    '000688': '20260101',   # 科创50
 }
 
 _session = None
@@ -346,14 +353,23 @@ def import_index_pb_tushare(conn, idx_code, ts_code, idx_name):
 def import_all_pb(conn, wait=True):
     """拉取所有指数的 PB/DY，自动处理限频。"""
     log("=== 指数 PB（成分股加权计算） ===")
-    for idx_code, ts_idx_code in PB_FROM_CONSTITUENTS.items():
+    for idx_code in PB_FROM_CONSTITUENTS:
         name = INDEX_INFO[idx_code]['name']
-        calc_pb_from_constituents(conn, idx_code, ts_idx_code, name)
+        weight_code = INDEX_WEIGHT_CODE[idx_code]
+        calc_pb_from_constituents(conn, idx_code, weight_code, name)
+
+    log("=== 指数 PE（成分股加权计算，补白酒/沪深300等 PE 评分所需） ===")
+    # 白酒ETF 用 PE 分位评分，需要中证白酒的 PE 历史
+    for idx_code in ['399997', '000922', '000688']:
+        name = INDEX_INFO[idx_code]['name']
+        weight_code = INDEX_WEIGHT_CODE[idx_code]
+        calc_pe_from_constituents(conn, idx_code, weight_code, name)
 
     log("=== 指数 DY（成分股加权计算） ===")
-    for idx_code, (ts_idx_code, weight_sd) in DY_FROM_CONSTITUENTS.items():
+    for idx_code, weight_sd in DY_FROM_CONSTITUENTS.items():
         name = INDEX_INFO[idx_code]['name']
-        calc_dy_from_constituents(conn, idx_code, ts_idx_code, name, weight_sd)
+        weight_code = INDEX_WEIGHT_CODE[idx_code]
+        calc_dy_from_constituents(conn, idx_code, weight_code, name, weight_sd)
 
     # 对 index_dailybasic 支持的主流指数（沪深300、上证50）也尝试补充
     log("=== 指数 PB/DY（Tushare index_dailybasic） ===")
@@ -439,6 +455,83 @@ def calc_pb_from_constituents(conn, idx_code, ts_idx_code, idx_name, start='2015
         n += 1
     conn.commit()
     log(f"  {idx_name}: {n} 条加权PB ({valid_pb.index[0]} ~ {valid_pb.index[-1]})")
+
+
+# ============================================================
+# 7b. 成分股加权PE（白酒ETF 评分需要中证白酒的 PE 历史）
+# ============================================================
+def calc_pe_from_constituents(conn, idx_code, ts_idx_code, idx_name, start='20150101'):
+    """从成分股权重和个股 PE 计算指数级 PE（加权平均近似）。
+
+    与 PB 同结构；仅替换字段为 pe，并跳过已有 ≥500 条 PE 的指数。
+    """
+    pe_cnt = conn.execute(
+        "SELECT COUNT(*) FROM index_valuation WHERE index_code=? AND pe IS NOT NULL",
+        [idx_code]
+    ).fetchone()[0]
+    if pe_cnt > 500:
+        log(f"  {idx_name}: 已有 {pe_cnt} 条PE，跳过")
+        return
+
+    log(f"  {idx_name}({ts_idx_code}): 从成分股计算加权PE...")
+
+    weight_df = None
+    for sd in ['20260101', '20250101', '20240101', '20230101']:
+        weight_df = pro.index_weight(index_code=ts_idx_code, start_date=sd, end_date='20991231')
+        if weight_df is not None and len(weight_df) > 0:
+            break
+        time.sleep(1)
+
+    if weight_df is None or len(weight_df) == 0:
+        log(f"  {idx_name}: 无法获取成分股权重")
+        return
+
+    latest = weight_df['trade_date'].max()
+    weights = weight_df[weight_df['trade_date'] == latest][['con_code', 'weight']].copy()
+    weights['weight'] = weights['weight'] / weights['weight'].sum()
+    log(f"  {idx_name}: {len(weights)} 只成分股 ({latest})")
+
+    # 逐只获取 PE 历史
+    pe_data = {}
+    for _, row in weights.iterrows():
+        stock = row['con_code']
+        try:
+            df = pro.daily_basic(ts_code=stock, start_date=start, end_date='20991231',
+                                 fields='ts_code,trade_date,pe')
+            if df is not None and len(df) > 0:
+                pe_data[stock] = df.set_index('trade_date')['pe']
+        except Exception:
+            pass
+        time.sleep(0.3)
+
+    if not pe_data:
+        log(f"  {idx_name}: 无PE数据")
+        return
+
+    pe_df = pd.DataFrame(pe_data)
+    w_map = weights.set_index('con_code')['weight'].to_dict()
+    w_common = {k: v for k, v in w_map.items() if k in pe_df.columns}
+    w_total = sum(w_common.values())
+    if w_total > 0:
+        for k in w_common:
+            w_common[k] /= w_total
+
+    weighted_pe = sum(pe_df[s].fillna(0) * w for s, w in w_common.items())
+    threshold = len(w_common) * 0.3
+    weighted_pe[pe_df.notna().sum(axis=1) < threshold] = None
+    valid_pe = weighted_pe.dropna()
+
+    n = 0
+    for td, pv in valid_pe.items():
+        conn.execute(
+            "INSERT INTO index_valuation (index_code,trade_date,pe,pb,dividend_yield,publish_date) "
+            "VALUES (?,?,?,NULL,NULL,?) ON CONFLICT(index_code,trade_date) DO UPDATE SET "
+            "pe=COALESCE(excluded.pe,index_valuation.pe)",
+            (idx_code, td, float(pv), td)
+        )
+        n += 1
+    conn.commit()
+    log(f"  {idx_name}: {n} 条加权PE ({valid_pe.index[0]} ~ {valid_pe.index[-1]})")
 
 
 # ============================================================
