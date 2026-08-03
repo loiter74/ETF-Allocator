@@ -662,6 +662,7 @@ def preview_trade_plan(params: TradePlanPreviewParams):
     finally:
         conn.close()
     ks = plan.state_patch.get("kechuang", {})
+    ks = plan.state_patch.get("kechuang", {})
     obs = plan.state_patch.get("observation", {})
     from config.settings import (
         KECHUANG_ACTIVATION_RETURN, KECHUANG_DRAWDOWN_TRIGGER,
@@ -696,90 +697,87 @@ def preview_trade_plan(params: TradePlanPreviewParams):
     }
 
 
+def _recalc_buys_after_fills(
+    conn: sqlite3.Connection,
+    params: TradePlanConfirmParams,
+    next_state: KechuangProtectionState,
+) -> Optional[TradePlan]:
+    """有正式卖单时，应用真实成交后重算下一阶段买单。"""
+    from config.settings import KECHUANG_PROTECTION_MODE
+    fill_by_asset = {f.asset: f for f in params.fills}
+    updated_positions = []
+    for p in params.snapshot.positions:
+        if p.asset in fill_by_asset:
+            fill = fill_by_asset[p.asset]
+            new_shares = max(0.0, p.shares - fill.shares)
+            # 改 price 后必须同步 market_value，否则 PositionSnapshot 校验不一致
+            p = p.model_copy(update={
+                "shares": new_shares, "price": fill.price,
+                "market_value": new_shares * fill.price,
+            })
+        updated_positions.append(p)
+    updated_domain = _domain_snapshot(
+        params.snapshot.model_copy(update={"positions": updated_positions})
+    )
+    scores, limits, eq_ratio, market_prices, trend_on = _resolve_trade_inputs(conn, params)
+    return build_trade_plan(
+        updated_domain,
+        opportunity_scores=scores,
+        risk_upper_limits=limits,
+        thermometer_equity_ratio=eq_ratio,
+        market_prices=market_prices,
+        kechuang_trend_on=trend_on,
+        kechuang_state=next_state,
+        protection_mode=params.protection_mode or KECHUANG_PROTECTION_MODE,
+    )
+
+
 @app.post("/api/trade-plan/confirm")
 def confirm_trade_plan(params: TradePlanConfirmParams):
     """显式确认月度观察/真实卖出（有副作用：写 SQLite + 推进科创状态）。幂等。"""
     conn = _open_investment_db()
     try:
-        snapshot, persisted_state, plan, context = _preview_plan(conn, params)
-    except Exception:
-        conn.close()
-        raise
+        snapshot, _state, plan, _context = _preview_plan(conn, params)
 
-    if plan.plan_id != params.plan_id:
-        conn.close()
-        raise HTTPException(status_code=409, detail="计划已变化，请重新预览后确认")
+        if plan.plan_id != params.plan_id:
+            raise HTTPException(status_code=409, detail="计划已变化，请重新预览后确认")
 
-    # 两阶段：有正式卖单时必须回填 fills
-    if plan.formal_sells and not params.fills:
-        conn.close()
-        raise HTTPException(status_code=422, detail="正式卖单必须先回填真实成交")
-    if not plan.formal_sells and params.fills:
-        conn.close()
-        raise HTTPException(status_code=422, detail="当前计划没有可确认的正式卖单")
+        # 两阶段：有正式卖单时必须回填 fills
+        if plan.formal_sells and not params.fills:
+            raise HTTPException(status_code=422, detail="正式卖单必须先回填真实成交")
+        if not plan.formal_sells and params.fills:
+            raise HTTPException(status_code=422, detail="当前计划没有可确认的正式卖单")
 
-    # 推进后的科创状态（从 plan 的 state_patch 取）
-    next_state = KechuangProtectionState.from_mapping(plan.state_patch.get("kechuang"))
+        next_state = KechuangProtectionState.from_mapping(plan.state_patch.get("kechuang"))
+        response_body: dict[str, Any] = {
+            "confirmation": {"idempotency_key": params.idempotency_key, "plan_id": params.plan_id},
+            "confirmed_plan": plan.to_dict(),
+            "next_plan": None,
+        }
 
-    # 构造响应体（也是要持久化的 response_json）
-    response_body: dict[str, Any] = {
-        "confirmation": {
-            "idempotency_key": params.idempotency_key,
-            "plan_id": params.plan_id,
-        },
-        "confirmed_plan": plan.to_dict(),
-        "next_plan": None,
-    }
+        # 有 fills 时重算买单
+        if params.fills:
+            next_plan = _recalc_buys_after_fills(conn, params, next_state)
+            response_body["next_plan"] = next_plan.to_dict() if next_plan else None
 
-    # 如果有 fills，重算下一阶段买单
-    if params.fills:
-        from src.strategy.planner import build_trade_plan as _btp
-        from config.settings import KECHUANG_PROTECTION_MODE
-        fill_by_asset = {f.asset: f for f in params.fills}
-        updated_positions = []
-        for p in params.snapshot.positions:
-            if p.asset in fill_by_asset:
-                fill = fill_by_asset[p.asset]
-                new_shares = max(0.0, p.shares - fill.shares)
-                # 改 price 后必须同步 market_value，否则 PositionSnapshot 校验不一致
-                p = p.model_copy(update={
-                    "shares": new_shares,
-                    "price": fill.price,
-                    "market_value": new_shares * fill.price,
-                })
-            updated_positions.append(p)
-        updated_snapshot_params = params.snapshot.model_copy(update={"positions": updated_positions})
-        updated_domain = _domain_snapshot(updated_snapshot_params)
-        scores, limits, eq_ratio, market_prices, trend_on = _resolve_trade_inputs(conn, params)
-        next_plan = _btp(
-            updated_domain,
-            opportunity_scores=scores,
-            risk_upper_limits=limits,
-            thermometer_equity_ratio=eq_ratio,
-            market_prices=market_prices,
-            kechuang_trend_on=trend_on,
-            kechuang_state=next_state,
-            protection_mode=params.protection_mode or KECHUANG_PROTECTION_MODE,
+        # 幂等持久化
+        saved = strategy_repo.save_confirmation(
+            conn,
+            idempotency_key=params.idempotency_key,
+            snapshot=snapshot,
+            plan=plan,
+            fills=[f.model_dump() for f in params.fills],
+            next_state=next_state,
+            response=response_body,
         )
-        response_body["next_plan"] = next_plan.to_dict()
+        # save_confirmation 可能返回已存在的缓存响应
+        if "confirmed_plan" in saved:
+            return saved
+        response_body["confirmation"]["snapshot_id"] = saved.get("snapshot_id")
+        return response_body
+    finally:
+        conn.close()
 
-    # 幂等持久化（save_confirmation 内部检查 existing）
-    saved = strategy_repo.save_confirmation(
-        conn,
-        idempotency_key=params.idempotency_key,
-        snapshot=snapshot,
-        plan=plan,
-        fills=[f.model_dump() for f in params.fills],
-        next_state=next_state,
-        response=response_body,
-    )
-    conn.close()
-
-    # save_confirmation 可能返回已存在的缓存响应
-    if "confirmed_plan" in saved:
-        return saved
-    response_body["confirmation"]["snapshot_id"] = saved.get("snapshot_id")
-    return response_body
 
 
 # ============================================================
