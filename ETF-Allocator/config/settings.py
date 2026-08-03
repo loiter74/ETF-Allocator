@@ -1,5 +1,5 @@
 """
-ETF-Allocator v1.2 — 所有可调参数集中定义。
+ETF-Allocator v2 candidate — 所有可调参数集中定义。
 流B训练期在此调参；流A只读取，不修改。
 """
 
@@ -42,7 +42,7 @@ ASSETS = {
     "沪深300ETF": {
         "code": "510300",
         "asset_class": "wide",
-        "factor_group": "VALUE",
+        "factor_group": "CORE",
         "tracking_index": "000300",      # 沪深300
     },
     "科创50ETF": {
@@ -120,9 +120,20 @@ TARGET_BANDS = {
     "国债ETF":    (0.10, 0.20),
 }
 
+# 六资产目标权重。目标用于缺口和再平衡；TARGET_BANDS 的上界是静态战略硬上限。
+TARGET_WEIGHTS = {
+    "白酒ETF":    0.175,
+    "银行ETF":    0.200,
+    "红利ETF":    0.175,
+    "沪深300ETF": 0.200,
+    "科创50ETF":  0.100,
+    "国债ETF":    0.150,
+}
+
 # 因子组上限（防伪分散）
 GROUP_CAPS = {
-    "VALUE":   0.60,   # 白酒+银行+红利+沪深300 合计不超过60%
+    "VALUE":   0.60,   # 白酒+银行+红利合计不超过60%
+    "CORE":    0.30,   # 沪深300独立核心仓，等同其战略硬上限
     "GROWTH":  0.15,   # 科创50不超过15%
 }
 
@@ -139,6 +150,18 @@ PENALTY_BUFFER = 0.05
 ALLOCATION_GAP_WEIGHT = 0.50    # 缺口分的权重（vs 机会分权重 1-此值）
 ALLOCATION_OPPORTUNITY_WEIGHT = 0.50
 MIN_OPPORTUNITY_SCORE = 0.20      # 最低机会分阈值：低于此值的资产不参与权益分配（防止买入极度高估资产）
+HIGH_OPPORTUNITY_SCORE = 0.80     # 高机会扩展阈值（含边界）
+HIGH_OPPORTUNITY_EXTENSION = 0.02 # 最多扩展至目标+2个百分点
+
+# 全账户权益闸门（包含非白名单权益）
+EQUITY_GATE_LOWER = 0.80          # 低于该值：新增资金100%权益
+EQUITY_GATE_UPPER = 0.90          # 高于该值：新增资金0%权益
+DEFENSE_TARGET = 0.15
+DEFENSE_HARD_CAP = 0.20
+DEFENSE_HARD_FLOOR = 0.10
+
+# 账户现金中的标记子账户不会重复计入总资产
+PENDING_CASH_ASSET = "权益待投现金"
 
 # 流A默认值（CLI/API 入口未显式指定时使用）
 DEFAULT_NEW_MONEY = 8_000          # 每月新增资金（元）
@@ -148,8 +171,16 @@ DEFAULT_TOTAL_ASSETS = 500_000     # 当前组合总资产（元）
 # 8. 年度再平衡参数
 # =============================================================
 ANNUAL_REBALANCE_ENABLED = True
-REBALANCE_DEVIATION_THRESHOLD = 0.10    # 偏离目标中点 ≥ 10pp 触发
-REBALANCE_TOLERANCE = 0.05              # 卖回目标时允许5%缓冲
+REBALANCE_OUTER_LOWER = 0.80       # 年度外部软带：目标×80%
+REBALANCE_OUTER_UPPER = 1.20       # 年度外部软带：目标×120%
+REBALANCE_INNER_LOWER = 0.90       # 交易后内部带：目标×90%
+REBALANCE_INNER_UPPER = 1.10       # 交易后内部带：目标×110%
+HARD_CAP_SELL_TARGET_BUFFER = 0.02 # 月度硬上限卖至目标+2pp
+MAX_DRAWDOWN_WARNING = 0.35        # 只报警，不自动清仓
+
+# 旧名称保留供兼容调用；新 checker 不再使用统一10pp阈值。
+REBALANCE_DEVIATION_THRESHOLD = 0.10
+REBALANCE_TOLERANCE = 0.05
 
 # =============================================================
 # 9. 回测参数（流B）
@@ -169,3 +200,42 @@ BOND_MIN_PURCHASE = 14000.0         # 单次最低买入金额（元）
 BOND_UNIT_SIZE = 100                # 最小交易单位（份）
 BOND_EXECUTION_MODE = "ACCUMULATE"  # 累积制（推荐）
 BOND_CASH_YIELD = 0.018             # 现金收益率（年化1.8%，逆回购近似）
+
+# =============================================================
+# 11. 低频交易执行与成本模型
+# =============================================================
+COMMISSION_RATE = 0.0003            # 双边佣金率 0.03%
+MIN_COMMISSION = 5.0                # 每笔最低佣金
+SLIPPAGE_RATE = 0.0005              # 单边滑点 5bp
+MAX_VOLUNTARY_COST_RATIO = 0.01     # 年度等自愿交易成本>1%时延后
+TRADE_UNIT_SIZE = {
+    "白酒ETF": 100,
+    "银行ETF": 100,
+    "红利ETF": 100,
+    "沪深300ETF": 100,
+    "科创50ETF": 100,
+    "国债ETF": BOND_UNIT_SIZE,
+}
+
+# =============================================================
+# 12. 科创50利润保护（预注册影子参数）
+# =============================================================
+KECHUANG_PROTECTION_MODE = "shadow"  # shadow通过验收前不得切live
+KECHUANG_ACTIVATION_RETURN = 0.25
+KECHUANG_DRAWDOWN_TRIGGER = 0.12
+KECHUANG_OFF_MONTHS_EXIT = 2
+KECHUANG_PARTIAL_SELL_FRACTION = 1.0 / 3.0
+KECHUANG_EXIT_TARGET = 0.05
+KECHUANG_REENTRY_SCORE = 0.50
+KECHUANG_REENTRY_ON_MONTHS = 2
+KECHUANG_COOLDOWN_FULL_MONTHS = 1
+
+# 回测验收与敏感性只做报告，不允许据测试期择优改锁定参数。
+BACKTEST_MAX_CAGR_LAG = 0.02
+BACKTEST_MIN_PROTECTION_TRIGGERS = 3
+KECHUANG_SENSITIVITY = {
+    "activation": [0.20, 0.25, 0.30],
+    "drawdown": [0.10, 0.12, 0.15],
+    "off_months": [1, 2, 3],
+    "sell_fraction": [0.25, 1.0 / 3.0, 0.50],
+}

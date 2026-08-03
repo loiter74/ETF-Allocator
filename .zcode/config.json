@@ -1,0 +1,15 @@
+{
+  "mcp": {
+    "servers": {
+      "etf-allocator": {
+        "type": "stdio",
+        "command": "python",
+        "args": ["ETF-Allocator/mcp_server/server.py"],
+        "env": {
+          "ETF_API_BASE": "http://localhost:8000"
+        },
+        "timeoutMs": 60000
+      }
+    }
+  }
+}

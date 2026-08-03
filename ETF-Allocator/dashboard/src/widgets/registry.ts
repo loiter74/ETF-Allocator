@@ -6,6 +6,7 @@ import { FactorRadarWidget } from './FactorRadarWidget';
 import { RiskBarWidget } from './RiskBarWidget';
 import { ValuationChartWidget } from './ValuationChartWidget';
 import { ActivityLogWidget } from './ActivityLogWidget';
+import { ProfitProtectionWidget } from './ProfitProtectionWidget';
 
 export interface WidgetMeta {
   id: string;
@@ -23,6 +24,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetMeta> = {
   factorRadar:    { id: 'factorRadar',    component: FactorRadarWidget,    title: '因子雷达',    defaultSize: { w: 4, h: 4 }, minSize: { w: 3, h: 3 } },
   riskBar:        { id: 'riskBar',        component: RiskBarWidget,        title: '因子组约束',  defaultSize: { w: 6, h: 2 }, minSize: { w: 4, h: 2 } },
   valuationChart: { id: 'valuationChart', component: ValuationChartWidget, title: '估值分位',    defaultSize: { w: 6, h: 4 }, minSize: { w: 4, h: 3 } },
+  profitProtection: { id: 'profitProtection', component: ProfitProtectionWidget, title: '盈利收获与交易计划', defaultSize: { w: 12, h: 8 }, minSize: { w: 6, h: 5 } },
 };
 
 export const DEFAULT_LAYOUTS = {

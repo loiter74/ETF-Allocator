@@ -1,5 +1,6 @@
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useSimulate } from '../hooks/useReport';
+import { useTradePlanPreview } from '../hooks/useTradePlan';
 import { ThermometerWidget } from '../widgets/ThermometerWidget';
 import { AllocationCardsWidget } from '../widgets/AllocationCardsWidget';
 import { EquityRingWidget } from '../widgets/EquityRingWidget';
@@ -7,12 +8,26 @@ import { FactorRadarWidget } from '../widgets/FactorRadarWidget';
 import { RiskBarWidget } from '../widgets/RiskBarWidget';
 import { ValuationChartWidget } from '../widgets/ValuationChartWidget';
 import { ActivityLogWidget } from '../widgets/ActivityLogWidget';
+import { ProfitProtectionWidget } from '../widgets/ProfitProtectionWidget';
 import GlassCard from '../components/GlassCard';
 import { ExportPanel } from '../components/ExportPanel';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ETF_TRACKING_INDEX } from '../types';
 import type { HistoryResponse, MonthlyReport } from '../types';
 import { formatLocalDate } from '../lib/utils';
+
+// preview买单 reason_codes → 中文（与 ProfitProtectionWidget 的 REASON_LABELS 保持一致）
+const REASON_LABELS_PREVIEW: Record<string, string> = {
+  STRATEGIC_HARD_CAP: '突破战略硬上限',
+  ANNUAL_SOFT_BAND: '12月年度软带',
+  BOND_ANNUAL_SOFT_BAND: '国债多手年度再平衡',
+  K50_HWM_DRAWDOWN_PARTIAL: '高水位回撤且趋势OFF',
+  K50_TWO_MONTH_OFF_EXIT: '连续两个月趋势OFF',
+  LOWER_BAND_REPAIR: '下限修复',
+  TARGET_FILL: '目标补齐',
+  HIGH_OPPORTUNITY_EXTENSION: '高机会扩展',
+  BOND_POOL_EXECUTION: '国债累积池执行',
+};
 
 const DEFAULT_HOLDINGS = [
   { name: '白酒ETF', code: '161725', amount: 0 },
@@ -127,6 +142,7 @@ function HoldingsInput({
 export default function AiriDashboard() {
   const dash = useDashboardData();
   const { data: simData, loading: simLoading, simulate } = useSimulate();
+  const tradePlan = useTradePlanPreview();
   const [selectedAsset, setSelectedAsset] = useState<string>('沪深300ETF');
   const [years, setYears] = useState(5);
 
@@ -138,7 +154,7 @@ export default function AiriDashboard() {
   const totalAssets = holdings.reduce((s, h) => s + h.amount, 0);
 
   // 用模拟结果覆盖 dashboard 数据
-  const report = useMemo<MonthlyReport | null>(() => simData
+  const baseReport = useMemo<MonthlyReport | null>(() => simData
     ? (() => {
         const equityAllocated = simData.allocations
           .filter(allocation => allocation.asset !== '国债ETF')
@@ -164,6 +180,38 @@ export default function AiriDashboard() {
       };
       })()
     : dash.report, [dash.report, newMoney, simData]);
+
+  // 当用户已扫描完整快照（trade-plan preview 有数据）时，顶部"本月新增资金分配"
+  // 卡片切换为 preview 的真实交易计划，与下方"纪律补仓买单"数据源一致。
+  // preview 走 V2 规则（真实持仓+权益闸门+三阶段），GET/simulate report 走 v1.3 规则，
+  // 两者数字本就不同；统一到 preview 后用户看到的是同一份决策。
+  const report = useMemo<MonthlyReport | null>(() => {
+    if (!baseReport || !tradePlan.data) return baseReport;
+    const plan = tradePlan.data.trade_plan;
+    const beforeWeights = plan.before?.managed_weights ?? {};
+    const buyByAsset = new Map(plan.buys.map(b => [b.asset, b]));
+    const allocations = DEFAULT_HOLDINGS.map(h => {
+      const order = buyByAsset.get(h.name);
+      const weight = beforeWeights[h.name] ?? 0;
+      if (order) {
+        return {
+          asset: h.name, code: h.code,
+          amount: Math.abs(order.cash_effect),
+          current_weight: weight,
+          upper_limit: 0.3,
+          opportunity_score: null,
+          trigger_reason: order.reason_codes.map(code => REASON_LABELS_PREVIEW[code] ?? code).join('、'),
+        };
+      }
+      // 未生成买单的资产：显示 ¥0 + 推断原因
+      const score = baseReport.allocations.find(a => a.asset === h.name)?.opportunity_score ?? null;
+      let reason = '本月未分配';
+      if (h.name === '国债ETF') reason = order ? '国债避险配置' : '累积中';
+      else if (score !== null && score < 0.2) reason = `机会分${Math.round((score ?? 0) * 100)}<20 排除`;
+      return { asset: h.name, code: h.code, amount: 0, current_weight: weight, upper_limit: 0.3, opportunity_score: score, trigger_reason: reason };
+    });
+    return { ...baseReport, allocations, new_money: tradePlan.data.snapshot_total_assets ? (plan.cash_ledger?.new_money ?? baseReport.new_money) : baseReport.new_money };
+  }, [baseReport, tradePlan.data]);
 
   const handleHoldingsChange = useCallback((index: number, value: number) => {
     setHoldings(prev => prev.map((h, i) => (i === index ? { ...h, amount: Math.max(0, value) } : h)));
@@ -345,10 +393,15 @@ export default function AiriDashboard() {
 
   return (
         <main className="px-4 sm:px-6 pb-8">
+          <GlassCard title="盈利收获与交易计划" className="mb-4"
+            info="完整快照模式读取份额、价格、平均成本和现金，输出正式卖单、科创50影子利润保护、纪律补仓买单与现金轧差。影子卖单只观察，不会自动执行。">
+            <ProfitProtectionWidget tradePlan={tradePlan} />
+          </GlassCard>
+
           {/* ── 持仓设置（可折叠） ── */}
           <details className="mb-4 group" open={false}>
             <summary className="text-sm font-medium text-[#7C3AED] cursor-pointer px-3 py-2 rounded-xl bg-[#7C3AED]/5 hover:bg-[#7C3AED]/10 transition-colors select-none">
-              ⚙ 持仓设置
+              ⚙ 快捷分配（仅买入，不判断止盈）
             </summary>
             <div className="mt-3 p-4 rounded-2xl bg-white/60 border border-gray-100 space-y-3">
               <HoldingsInput holdings={holdings} onChange={handleHoldingsChange} />
@@ -424,7 +477,7 @@ export default function AiriDashboard() {
               </div>
 
               {/* Row 4: 组合风险 */}
-              <GlassCard title="组合风险" info="因子组约束防伪分散：VALUE组(白酒+银行+红利+沪深300)上限60%；GROWTH组(科创50)上限15%。超限时组内等比缩减，溢出进国债。">
+              <GlassCard title="组合风险" info="因子组约束防伪分散：VALUE组(白酒+银行+红利)上限60%；沪深300独立为CORE，上限30%；GROWTH组(科创50)上限15%。完整快照模式下，无法成交的权益预算保留为权益待投现金。">
                 <RiskBarWidget {...dash.riskData} />
               </GlassCard>
 

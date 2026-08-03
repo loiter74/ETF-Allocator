@@ -1,22 +1,22 @@
-# 当前架构（Architecture — Current State）
+# 当前架构（Architecture — V2 Candidate State）
 
-> 审计日期：2026-07-25  
-> 分支：`chore/nightly-audit-refactor`  
-> 适用代码版本：`main @ 2799cda`
+> 更新日期：2026-08-02
+>
+> 适用状态：V1.3 兼容报告＋V2 完整快照交易计划候选
 
-## 0. 重要前置说明（与目标模板的差异）
+## 0. 迁移状态
 
-用户提供的审计目标模板（第一阶段第 3 项）要求描述 **LLM / TTS / Live2D / WebSocket / Socket.IO** 的连接关系。
-
-**本项目是 ETF 月度新增资金配置系统，不包含上述任何组件。** 该模板来自其他项目（AI 虚拟人/对话系统）的通用审计清单。本文件按实际代码库（Python + FastAPI + React/Vite + SQLite）描述架构，不强行套用不存在概念。后续 `audit-report.md` 第 11、12 项（"inspection/healthcheck/mock 消息误入 LLM 链路"、"persona/memory/message filter/Agent loop 边界"）同理：本项目无 LLM 链路，相关条目将标注为"不适用"，并替换为实际存在的对应风险（如 demo 数据是否误入正式计算链路、`run.py` / API / 前端之间的边界是否清晰）。
+- `run.py report`、`GET/POST /api/report` 和 `allocation.allocator` 保留 V1.3 权重输入兼容；该模式没有真实份额和成本，因此只能分配新增资金，不能生成卖单。
+- V2 完整能力由 `src/strategy/` 提供，入口为 `run.py plan`、Dashboard“盈利收获与交易计划”、`POST /api/trade-plan/preview`、`POST /api/trade-plan/confirm` 和卖出感知回测。
+- 核心规则处于代码候选阶段；科创50利润保护由锁定配置强制为 `shadow`，只有后续新参数锁版本可转 `live`。
 
 ---
 
 ## 1. 项目概述
 
-ETF 月度新增资金配置系统（v1.3）。每月回答一个问题：**本月新增资金怎么分到 6 个 ETF / 国债**。
+ETF 月度新增资金配置＋低频风险再平衡系统。每月回答两个有先后顺序的问题：**是否命中有限卖出规则；可用新增资金和真实卖出净收入如何分到 6 个 ETF / 国债。**
 
-- 不预测涨跌，不卖已有仓位
+- 不预测涨跌；卖出只处理战略硬上限、年度明显漂移和科创专属保护
 - 每个决策可追溯到因子值和规则
 - 核心代码在 `ETF-Allocator/` 子目录
 
@@ -26,20 +26,38 @@ ETF 月度新增资金配置系统（v1.3）。每月回答一个问题：**本�
 
 ## 2. 两条独立数据流
 
-### 流 A（运行流 / Runtime）— `run.py report`
+### 流 A（运行流 / Runtime）
 每月执行一次：
 
 ```
 数据更新（AkShare）→ 因子计算 → 机会分评分 → 市场温度计
-   → 风险控制 → 组合约束 → 资金分配 → 国债累积池 → 月报
+   → 风险买入上限 → PortfolioSnapshot → strategy.planner
+   → 正式/影子卖单 → [真实卖出确认] → 三阶段买入 → TradePlan
 ```
+
+旧 `run.py report` 继续走 V1.3 兼容分配；完整快照走 `run.py plan` 或交易计划 API。
+
+Dashboard 可用截图减少完整快照手填：
+
+```text
+浏览器原图 → Tesseract.js 本地 OCR → OCR 文字
+  → snapshot_import.service
+       ├─ DeepSeek JSON 结构化（可选）
+       ├─ 确定性本地解析（默认/回退）
+       └─ PIT 本地行情只补缺失现价
+  → 可编辑 SnapshotDraft → 显式应用到页面表单
+  → [用户另行点击] trade-plan/preview
+```
+
+原图不跨浏览器边界；导入草稿不进入 `strategy.repository`，不写 SQLite，也不自动预览或确认交易。
 
 ### 流 B（验证流 / Backtest）— `validate.py`
 离线定期执行：
 
 ```
 训练期（2015–2021）调参 → SHA-256 锁定参数 → 测试期（2022–2025）只验
-   → 年化收益 / 最大回撤 / 夏普 / Calmar
+   → V1.3 / 静态年度 / 新策略无保护 / 完整保护四组对照
+   → 年化 / 最大回撤 / 夏普 / Calmar / 成本 / 卖出与触发次数
 ```
 
 ---
@@ -55,7 +73,7 @@ ETF-Allocator/
 │   └── settings.py        【唯一参数源】资产池/因子权重/阈值/约束/回测期
 ├── src/
 │   ├── store/             SQLite 建表 + PIT（point-in-time）校验
-│   │   ├── schema.py        DDL（SCHEMA_VERSION=3，含 investment_record）
+│   │   ├── schema.py        DDL（SCHEMA_VERSION=4，含快照/状态/确认/成交）
 │   │   ├── validator.py     AntiLookAhead：publish_date 过滤
 │   │   └── normalization.py 日期 / 股息率标准化
 │   ├── datasource/
@@ -78,18 +96,31 @@ ETF-Allocator/
 │   │   └── allocator.py     缺口分+机会分混合 → 最终资金分配
 │   ├── execution/
 │   │   └── bond_liquidity.py BondAccumulator（国债累积池，解决最低买入门槛）
+│   ├── snapshot_import/
+│   │   ├── parser.py          确定性 OCR 文字解析、别名归一和标签证据
+│   │   ├── deepseek.py        可选 JSON Output 结构化适配器（只接收文字）
+│   │   ├── models.py          字段级来源/置信度/证据草稿
+│   │   └── service.py         输入限制、安全回退与 PIT 现价补齐
+│   ├── strategy/
+│   │   ├── models.py         PortfolioSnapshot / TradeOrder / TradePlan / 现金账
+│   │   ├── planner.py        共享闸门、三阶段补仓、低频卖出和两阶段执行
+│   │   ├── kechuang.py       科创利润保护月频状态机
+│   │   └── repository.py     快照、成交、状态和幂等确认事务
 │   ├── backtest/
-│   │   ├── engine.py        run_backtest：PIT 回测（最长 489 行）
+│   │   ├── engine.py        V1.3基线＋真实份额/成本/卖出/敏感性回放
 │   │   ├── splitter.py      训练/测试日期切分
 │   │   └── parameter_lock.py 参数 SHA-256 锁定
 │   ├── rebalance/
-│   │   └── checker.py       年度再平衡（12/1–3 触发，只卖不买）
+│   │   └── checker.py       权重兼容模式的年度相对软带检查
 │   ├── reports/
 │   │   └── monthly.py       月报文本生成（generate_report）
 │   └── api/
-│       └── server.py        FastAPI（/api/report、/api/history、/api/investments、SPA）
+│       └── server.py        FastAPI（旧报告＋trade-plan＋只读截图文字导入＋history/investments）
 ├── dashboard/              React 19 + TS + Vite 8 + Tailwind 4
-│   └── src/{pages,hooks,components}/  通过 hooks 调用 /api/*
+│   ├── src/components/BrokerScreenshotImport.tsx  本地 OCR、核对和显式应用
+│   ├── src/hooks/useSnapshotImport.ts             只读配置与文字结构化 API
+│   ├── src/hooks/useTradePlan.ts       完整快照只读预览
+│   └── src/widgets/ProfitProtectionWidget.tsx  盈利保护状态、正式/影子/买单与现金轧差
 ├── scripts/               数据导入（AkShare / Tushare PB）
 └── tests/                 pytest（unit + integration + fixtures）
 ```
@@ -125,7 +156,25 @@ main(argv)
        └─ generate_report(...)                        # reports.monthly → 打印到 stdout
 ```
 
-### 4.2 API 调用（`GET /api/report`）
+### 4.2 完整交易计划（CLI / API / 回测共享）
+
+```
+PortfolioSnapshot + scores + risk buy limits + thermometer + persisted K state
+  → build_trade_plan()                         # 纯函数，预览无写入
+       ├─ 复算全账户/受管组合双口径
+       ├─ 释放国债池超额标记
+       ├─ 核心硬上限 / 年度软带 / K50状态机
+       ├─ [有正式卖单] TradePlan(sell_preview)
+       └─ [无正式卖单] 战略闸门 → 三阶段买入 → 成本/取整 → TradePlan(complete)
+
+POST /api/trade-plan/confirm
+  → 校验 plan_id + idempotency_key
+  → apply_confirmed_sells(真实成交)
+  → build_trade_plan(成交后派生快照)            # 重算买单
+  → 单事务保存 snapshot/items/state/confirmation/fills
+```
+
+### 4.3 兼容 API 调用（`GET /api/report`）
 ```
 浏览器 (React useDashboardData hook)
   → GET /api/report?total_assets=...&current_weights=...
@@ -137,15 +186,19 @@ main(argv)
           └─ 返回 JSON（不调用 generate_report，自建 JSON 结构）
 ```
 
-### 4.3 回测（`python validate.py test`）
+### 4.4 回测（`python validate.py test`）
 ```
 run_test()
   ├─ verify_snapshot(PARAMETER_LOCK_PATH)   # SHA-256 校验参数锁定
-  └─ run_backtest(conn, mode="test")        # backtest.engine
-       └─ 逐月迭代（_monthly_dates）
-            ├─ get_available_valuations/prices   # PIT 过滤
-            ├─ （同流A的 因子→评分→温度计→风险→约束→分配→国债）
-            └─ 累计 portfolio_values → compute_metrics（年化/MDD/夏普/Calmar）
+  └─ run_strategy_comparison(conn, mode="test")
+       ├─ run_backtest()                    # V1.3 兼容基线
+       ├─ run_trade_backtest(static_target_annual)
+       ├─ run_trade_backtest(new_no_protection)
+       └─ run_trade_backtest(full_protection)
+            ├─ PIT factors/prices
+            ├─ build_trade_plan()           # 与实盘相同
+            ├─ 真实份额、现金、整手、佣金、滑点、国债池和K状态
+            └─ metrics + cost/sell/trigger acceptance
 ```
 
 ---
@@ -162,6 +215,9 @@ run_test()
 | `allocation.allocator.allocate` | scores/weights/limits/total/budget | `Dict[资产, 金额]` |
 | `api.server.get_report` | Query: total_assets, current_weights | JSON 报告 |
 | `reports.monthly.generate_report` | temp_result/factors/scores/... | 月报字符串 |
+| `strategy.planner.build_trade_plan` | 完整快照、分数、风险买入上限、温度计、K状态 | 无副作用 `TradePlan`＋确认后状态补丁 |
+| `api.server.preview_trade_plan` | `PortfolioSnapshot`＋可选决策输入 | 只读正式/影子/买入计划 |
+| `api.server.confirm_trade_plan` | plan_id、幂等键、真实卖出成交 | 成交审计＋成交后重算计划 |
 
 ---
 
@@ -169,7 +225,7 @@ run_test()
 
 | 状态 | 位置 | 作用域 |
 |---|---|---|
-| SQLite 主库 | `ETF-Allocator/data/db/etf_data.db` | 持久（价格/估值/因子/投资记录） |
+| SQLite 主库 | `ETF-Allocator/data/db/etf_data.db` | 持久（价格/估值/因子/投资记录/月度快照/成交/K状态） |
 | 温度计状态 | `data/db/regime_state.json`（`_last_equity_ratio`） | 跨月持久化 |
 | 国债累积池 | `data/db/bond_accumulator.json`（BondAccumulator） | 跨月持久化 |
 | 参数锁 | `data/db/locked_parameters.json`（SHA-256） | 训练→测试锁定 |
@@ -205,6 +261,8 @@ run_test()
 │  hooks/useDashboardData  │   /api/history?index=&field= │  get_history             │
 │  hooks/useHistory        │   /api/history               │                          │
 │  hooks/useInvestmentRecords │ /api/investments (CRUD)   │  investment handlers     │
+│  hooks/useTradePlan      │   /api/trade-plan/preview    │  preview_trade_plan      │
+│  ProfitProtectionWidget  │   完整快照＋保护/订单展示      │  strategy.planner         │
 │  pages/AiriDashboard     │   ⚠ 还有一处内联 fetch       │                          │
 │                          │     /api/history (违反规约)   │  SPA fallback (dist/)    │
 └──────────────────────────┘                              └────────────┬────────────┘
@@ -229,5 +287,8 @@ run_test()
 4. **参数集中**：`config/settings.py` 是唯一参数源（实际有少量例外，见 audit-report）。
 5. **测试期不可调参**：流 B 测试期只验不调。
 6. **温度计双指标 AND**：沪深300 PE 分位 AND 全A PB 分位，双 > 90% 才触发降温。
-7. **国债是吸收口**：温度计强制债比例 + 分配溢出都进国债。
+7. **现金不重复计数**：国债池和权益待投现金都是账户现金标记；防御到20%后不再吸收溢出。
 8. **趋势开关 OFF ≠ 归零**：减半（×0.50）保留反转参与权。
+9. **卖出与买入上限分离**：风险上限只限制买入；静态战略硬上限和年度软带才允许核心卖出。
+10. **预览无副作用**：GET/模拟/preview 不写策略状态，只有带幂等键的 confirm 写入。
+11. **影子隔离**：`KECHUANG_PROTECTION_MODE=shadow` 时 K50 订单不得进入正式卖单或现金账。

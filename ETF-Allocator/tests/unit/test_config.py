@@ -43,7 +43,7 @@ class TestAssetPool:
     def test_all_factor_groups_defined(self):
         for name, asset in settings.ASSETS.items():
             assert asset["factor_group"] in (
-                "VALUE", "GROWTH", "DEFENSE"
+                "VALUE", "CORE", "GROWTH", "DEFENSE"
             ), f"{name} has invalid factor_group: {asset['factor_group']}"
 
     def test_factor_group_caps_cover_all_groups(self):
@@ -54,7 +54,7 @@ class TestAssetPool:
                 assert g in settings.GROUP_CAPS, f"factor_group '{g}' missing from GROUP_CAPS"
 
     def test_value_group_contains_expected_assets(self):
-        """VALUE组应包含白酒、银行、红利、沪深300（不含科创50和国债）"""
+        """VALUE组只包含白酒、银行、红利；沪深300拆为CORE。"""
         value_assets = [
             name for name, a in settings.ASSETS.items()
             if a["factor_group"] == "VALUE"
@@ -62,9 +62,16 @@ class TestAssetPool:
         assert "白酒ETF" in value_assets
         assert "银行ETF" in value_assets
         assert "红利ETF" in value_assets
-        assert "沪深300ETF" in value_assets
+        assert "沪深300ETF" not in value_assets
         assert "科创50ETF" not in value_assets
         assert "国债ETF" not in value_assets
+
+    def test_core_group_is_hs300_only(self):
+        core_assets = [
+            name for name, asset in settings.ASSETS.items()
+            if asset["factor_group"] == "CORE"
+        ]
+        assert core_assets == ["沪深300ETF"]
 
     def test_growth_group_is_kc50_only(self):
         growth_assets = [

@@ -44,8 +44,8 @@ def test_zero_market_return_with_monthly_cashflows_has_zero_metrics():
 def test_group_cap_uses_all_existing_group_holdings():
     allocations = {"银行ETF": 10_000.0}
     weights = {
-        "白酒ETF": 0.30, "银行ETF": 0.10, "红利ETF": 0.10,
-        "沪深300ETF": 0.09, "科创50ETF": 0.10, "国债ETF": 0.31,
+        "白酒ETF": 0.30, "银行ETF": 0.15, "红利ETF": 0.15,
+        "沪深300ETF": 0.09, "科创50ETF": 0.10, "国债ETF": 0.21,
     }
     result = check_factor_group_constraint(allocations, weights, 100_000)
     assert result["status"] == "scale_down"

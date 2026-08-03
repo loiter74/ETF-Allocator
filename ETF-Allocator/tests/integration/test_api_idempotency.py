@@ -8,6 +8,10 @@ def test_get_report_does_not_create_or_change_bond_state(tmp_path, monkeypatch):
     first = server.get_report(date_str="2026-06-01", total_assets=0)
     second = server.get_report(date_str="2026-06-01", total_assets=0)
 
+    # v1.3 退役：GET report 不再触碰 BondAccumulator，也不返回 bond_status
     assert not state_path.exists()
-    assert first["bond_status"] == second["bond_status"]
-    assert first["allocations"] == second["allocations"]
+    assert "bond_status" not in first
+    assert "allocations" not in first
+    # 市场状态应幂等
+    assert first["market_temp"] == second["market_temp"]
+    assert first["assets"] == second["assets"]

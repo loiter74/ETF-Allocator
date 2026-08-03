@@ -88,7 +88,8 @@ class TestGroupWeight:
             "白酒ETF": 0.20, "银行ETF": 0.20, "红利ETF": 0.10,
             "沪深300ETF": 0.05, "科创50ETF": 0.15, "国债ETF": 0.30,
         }
-        assert group_weight(weights, "VALUE") == pytest.approx(0.20+0.20+0.10+0.05)
+        assert group_weight(weights, "VALUE") == pytest.approx(0.20+0.20+0.10)
+        assert group_weight(weights, "CORE") == pytest.approx(0.05)
 
     def test_growth_group(self):
         weights = {
@@ -115,10 +116,10 @@ class TestFactorGroupConstraint:
         assert result["status"] == "ok"
 
     def test_value_group_over_cap(self):
-        """VALUE组 65% > 60% 上限 → 需缩减"""
+        """白酒+银行+红利 VALUE组 65% > 60% 上限 → 需缩减"""
         weights = {
-            "白酒ETF": 0.20, "银行ETF": 0.20, "红利ETF": 0.15,
-            "沪深300ETF": 0.10, "科创50ETF": 0.05, "国债ETF": 0.30,
+            "白酒ETF": 0.25, "银行ETF": 0.25, "红利ETF": 0.15,
+            "沪深300ETF": 0.05, "科创50ETF": 0.05, "国债ETF": 0.25,
         }
         allocations = {
             "白酒ETF": 3000, "银行ETF": 3000, "红利ETF": 2000,
@@ -130,7 +131,7 @@ class TestFactorGroupConstraint:
         # 缩减后 VALUE 组合计应 ≤ 60%
         scaled = result["scaled_allocations"]
         value_sum = sum(
-            scaled[a] for a in ["白酒ETF", "银行ETF", "红利ETF", "沪深300ETF"]
+            scaled[a] for a in ["白酒ETF", "银行ETF", "红利ETF"]
         )
         # 60% × 100000 = 60000
         assert value_sum <= 60000

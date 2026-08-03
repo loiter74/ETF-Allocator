@@ -266,3 +266,62 @@ def generate_report(
     lines.append(sep)
 
     return "\n".join(lines)
+
+
+def generate_trade_plan_report(plan) -> str:
+    """Render a human-readable V2 TradePlan without changing its calculations."""
+    reason_labels = {
+        "STRATEGIC_HARD_CAP": "突破战略硬上限",
+        "ANNUAL_SOFT_BAND": "12月越过年度外部软带",
+        "BOND_ANNUAL_SOFT_BAND": "国债多手年度软再平衡",
+        "K50_HWM_DRAWDOWN_PARTIAL": "科创高水位回撤且趋势OFF",
+        "K50_TWO_MONTH_OFF_EXIT": "科创连续两月趋势OFF",
+        "LOWER_BAND_REPAIR": "下限修复",
+        "TARGET_FILL": "目标补齐",
+        "HIGH_OPPORTUNITY_EXTENSION": "高机会扩展",
+        "BOND_POOL_EXECUTION": "国债累积池达到交易门槛",
+    }
+
+    def describe(order) -> str:
+        reasons = "、".join(reason_labels.get(code, code) for code in order.reason_codes)
+        return (
+            f"{order.asset} {order.shares}份 @ 预计¥{order.estimated_price:.4f}，"
+            f"佣金¥{order.commission:.2f}；{reasons}"
+        )
+
+    before = plan.before
+    lines = [
+        f"🔴 月度交易计划（{plan.snapshot_date.isoformat()}，阶段：{plan.phase}）",
+        "━" * 36,
+        "【0. 战略仓位扫描】",
+        f"全账户权益：{before.get('account_equity_ratio', 0):.1%}",
+        f"防御桶：{before.get('defense_ratio', 0):.1%}",
+        f"受管组合：¥{before.get('managed_total', 0):,.2f}",
+        "",
+        "【1. 正式卖单】",
+    ]
+    lines.extend([f"① {describe(order)}" for order in plan.formal_sells] or ["无"])
+    lines.extend(["", "【2. 科创50影子卖单】"])
+    lines.extend([f"① {describe(order)}（不执行、不计入现金）" for order in plan.shadow_sells] or ["无"])
+    lines.extend(["", "【3. 买单】"])
+    lines.extend([f"① {describe(order)}" for order in plan.buys] or [
+        "等待真实卖出成交后重算" if plan.pending_buy_recalculation else "无"
+    ])
+    lines.extend(["", "【4. 现金轧差】"])
+    if plan.cash_ledger:
+        ledger = plan.cash_ledger
+        lines.extend([
+            f"期初现金 ¥{ledger.opening_cash:,.2f}",
+            f"+ 新增资金 ¥{ledger.new_money:,.2f}",
+            f"+ 卖出净收入 ¥{ledger.sell_net_proceeds:,.2f}",
+            f"- 买入支出 ¥{ledger.buy_cash_outflow:,.2f}",
+            f"= 期末现金 ¥{ledger.closing_cash:,.2f}",
+            f"其中：国债池 ¥{ledger.bond_pool_after:,.2f}；权益待投 ¥{ledger.equity_pending_after:,.2f}",
+        ])
+    if plan.warnings:
+        lines.extend(["", "【5. 提示】", *[f"- {warning}" for warning in plan.warnings]])
+    lines.extend([
+        "",
+        "注：科创影子卖单不执行。正式卖单出现时必须先回填真实成交，再执行重算买单。",
+    ])
+    return "\n".join(lines)

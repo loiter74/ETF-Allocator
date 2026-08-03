@@ -60,8 +60,11 @@ from src.risk.controller import all_effective_limits, reset_recovery_tracking
 from src.constraints.portfolio import apply_constraints
 from src.allocation.allocator import allocate
 from src.rebalance.checker import check_rebalance
-from src.reports.monthly import generate_report
+from src.reports.monthly import generate_report, generate_trade_plan_report
 from src.execution.bond_liquidity import BondAccumulator
+from src.strategy.models import PortfolioSnapshot, PositionSnapshot
+from src.strategy.planner import build_trade_plan
+from src.strategy.repository import load_kechuang_state
 
 
 DB_PATH = PROJECT_ROOT / "data" / "db" / "etf_data.db"
@@ -611,11 +614,90 @@ def run_rebalance_check() -> None:
     conn.close()
 
 
+def run_trade_plan(snapshot_file: str) -> None:
+    """Preview a full snapshot through the shared decision engine (read-only)."""
+    path = Path(snapshot_file)
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        raw_snapshot = payload.get("snapshot", payload)
+        snapshot = PortfolioSnapshot(
+            snapshot_date=raw_snapshot["snapshot_date"],
+            price_date=raw_snapshot["price_date"],
+            new_money=raw_snapshot.get("new_money", 0),
+            account_cash=raw_snapshot.get("account_cash", 0),
+            bond_pool_cash=raw_snapshot.get("bond_pool_cash", 0),
+            reverse_repo_cash=raw_snapshot.get("reverse_repo_cash", 0),
+            equity_pending_cash=raw_snapshot.get("equity_pending_cash", 0),
+            confirmed_sell_proceeds=raw_snapshot.get("confirmed_sell_proceeds", 0),
+            legacy_allocation_only=raw_snapshot.get("legacy_allocation_only", False),
+            positions=tuple(PositionSnapshot(**item) for item in raw_snapshot.get("positions", [])),
+        )
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        print(f"[ERROR] 无法读取完整持仓快照: {exc}")
+        sys.exit(1)
+
+    conn = get_db_connection()
+    try:
+        factors = calculate_factors(conn, snapshot.price_date)
+        scores = payload.get("opportunity_scores") or score_all(factors)
+        vols = {name: factor.get("volatility") for name, factor in factors.items()}
+        limits = payload.get("risk_upper_limits") or all_effective_limits(vols)
+        from config.settings import TARGET_BANDS
+        limits = {
+            name: (limits.get(name) if limits.get(name) is not None else TARGET_BANDS[name][1])
+            for name in ASSETS
+        }
+
+        market_prices = dict(payload.get("market_prices", {}))
+        for name, config in ASSETS.items():
+            if float(market_prices.get(name, 0)) > 0:
+                continue
+            rows = conn.execute(
+                """SELECT close_adj FROM etf_price
+                   WHERE code = ? AND trade_date <= ?
+                   ORDER BY trade_date DESC LIMIT 1""",
+                (config["code"], snapshot.price_date.isoformat()),
+            ).fetchone()
+            if rows:
+                market_prices[name] = float(rows[0])
+
+        hs300_pct = factors.get("沪深300ETF", {}).get("pe_percentile")
+        all_a_pb = load_valuation_series(conn, "000985", "pb", snapshot.price_date)
+        if not all_a_pb.empty:
+            all_a_pb = all_a_pb[all_a_pb.index <= pd.Timestamp(snapshot.price_date)]
+        all_a_pct = pb_percentile(all_a_pb, max_window_years=WINDOW_PE_PERCENTILE_YEARS) if not all_a_pb.empty else None
+        previous_ratio = payload.get("thermometer_equity_ratio")
+        if previous_ratio is None:
+            eq_ratio, _ = equity_ratio(hs300_pct, all_a_pct)
+        else:
+            eq_ratio = float(previous_ratio)
+        trend_on = payload.get(
+            "kechuang_trend_on",
+            factors.get("科创50ETF", {}).get("trend_multiplier", 1.0) >= 1.0,
+        )
+        plan = build_trade_plan(
+            snapshot,
+            opportunity_scores=scores,
+            risk_upper_limits=limits,
+            thermometer_equity_ratio=eq_ratio,
+            market_prices=market_prices,
+            kechuang_trend_on=bool(trend_on),
+            kechuang_state=load_kechuang_state(conn),
+        )
+        if str(payload.get("format", "json")).lower() == "text":
+            print(generate_trade_plan_report(plan))
+        else:
+            print(json.dumps(plan.to_dict(), ensure_ascii=False, indent=2))
+    finally:
+        conn.close()
+
+
 # ---- MAIN ----
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("用法: python run.py report [--demo] [--weights JSON] [--total N] [-v]")
         print("       python run.py rebalance")
+        print("       python run.py plan --snapshot snapshot.json")
         print()
         print("  report       运行完整月度配置报告（流A）")
         print("    --demo     使用模拟数据演示（无需安装 akshare）")
@@ -623,6 +705,7 @@ if __name__ == "__main__":
         print("    --total N  当前总资产金额（默认 500,000）")
         print("    -v         详细输出")
         print("  rebalance    仅检查年度再平衡状态")
+        print("  plan         只读预览完整持仓快照的买卖计划")
         sys.exit(0)
 
     cmd = sys.argv[1].lower()
@@ -652,7 +735,15 @@ if __name__ == "__main__":
         )
     elif cmd == "rebalance":
         run_rebalance_check()
+    elif cmd == "plan":
+        try:
+            snapshot_index = sys.argv.index("--snapshot")
+            snapshot_file = sys.argv[snapshot_index + 1]
+        except (ValueError, IndexError):
+            print("[ERROR] plan 需要 --snapshot snapshot.json")
+            sys.exit(1)
+        run_trade_plan(snapshot_file)
     else:
         print(f"未知命令: {cmd}")
-        print("可用命令: report, rebalance")
+        print("可用命令: report, rebalance, plan")
         sys.exit(1)

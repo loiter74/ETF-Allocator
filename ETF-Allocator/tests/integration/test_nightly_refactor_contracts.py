@@ -103,16 +103,19 @@ def test_get_report_normal_path_returns_full_payload(tmp_path, monkeypatch):
     )
 
     assert isinstance(result, dict)
-    # 必备顶层键（与 server.get_report 实际 schema 对齐）
-    for key in ("date", "new_money", "total_assets", "market_temp",
-                "portfolio_risk", "allocations"):
+    # v1.3 退役：GET report 只返回市场状态，不再返回决策字段
+    # 必备顶层键（市场状态）
+    for key in ("date", "market_temp", "portfolio_risk", "assets", "warnings"):
         assert key in result, f"报告缺少必备字段 {key}"
+    # 决策字段已退役（不应出现）
+    for removed in ("allocations", "bond_status", "allocation_summary", "new_money", "total_assets"):
+        assert removed not in result, f"GET report 不应再返回决策字段 {removed}"
     # 温度计字段必须有权益比例
     temp = result["market_temp"]
     assert "equity_ratio" in temp
     assert 0.0 <= temp["equity_ratio"] <= 1.0
-    # allocations 是列表
-    assert isinstance(result["allocations"], list)
+    # assets 是列表（含各资产因子详情）
+    assert isinstance(result["assets"], list)
 
 
 def test_get_report_with_zero_total_assets_uses_initial_mode(tmp_path, monkeypatch):
@@ -127,7 +130,9 @@ def test_get_report_with_zero_total_assets_uses_initial_mode(tmp_path, monkeypat
 
     result = server.get_report(date_str="2026-06-01", total_assets=0)
     assert isinstance(result, dict)
-    assert "allocations" in result
+    # v1.3 退役：不再返回 allocations，但应有 assets（市场状态）
+    assert "assets" in result
+    assert "allocations" not in result
 
 
 def test_get_report_idempotent_across_calls(tmp_path, monkeypatch):
@@ -142,8 +147,9 @@ def test_get_report_idempotent_across_calls(tmp_path, monkeypatch):
 
     a = server.get_report(date_str="2026-06-01", total_assets=0)
     b = server.get_report(date_str="2026-06-01", total_assets=0)
-    assert a["allocations"] == b["allocations"]
-    assert a.get("bond_status") == b.get("bond_status")
+    # v1.3 退役：幂等性现在守护 market_temp + assets（市场状态只读）
+    assert a["market_temp"] == b["market_temp"]
+    assert a["assets"] == b["assets"]
 
 
 # ============================================================

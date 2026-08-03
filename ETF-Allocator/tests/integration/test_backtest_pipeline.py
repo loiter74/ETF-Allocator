@@ -399,10 +399,10 @@ class TestBackfillExclusion:
 # ════════════════════════════════════════════════════════════════
 
 class TestRebalanceTrigger:
-    """场景5: 权重偏离中点超 10pp → 标记卖出。"""
+    """场景5: 年度相对外带 → 标记卖出或新增资金修复。"""
 
     def test_rebalance_triggered_when_deviation_exceeds_10pp(self):
-        """白酒权重 28% vs 中点 17.5% → 偏离 10.5pp > 10pp → 触发"""
+        """白酒权重 28% > 目标17.5%×120% → 触发"""
         from src.rebalance.checker import check_rebalance
 
         current_weights = {
@@ -426,16 +426,16 @@ class TestRebalanceTrigger:
         assert result["trades"]["白酒ETF"] > 0
 
     def test_rebalance_not_triggered_within_tolerance(self):
-        """白酒权重 20% vs 中点 17.5% → 偏离 2.5pp < 10pp → 不触发"""
+        """所有权益资产均在各自目标的80%–120%外带内 → 不触发"""
         from src.rebalance.checker import check_rebalance
 
         current_weights = {
             "白酒ETF": 0.20,
-            "银行ETF": 0.18,
-            "红利ETF": 0.08,
-            "沪深300ETF": 0.18,
-            "科创50ETF": 0.08,
-            "国债ETF": 0.28,
+            "银行ETF": 0.20,
+            "红利ETF": 0.15,
+            "沪深300ETF": 0.20,
+            "科创50ETF": 0.10,
+            "国债ETF": 0.15,
         }
 
         result = check_rebalance(

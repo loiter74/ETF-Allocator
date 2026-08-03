@@ -125,6 +125,188 @@ export interface InvestmentCreateRequest {
   note: string;
 }
 
+export interface PortfolioPositionInput {
+  asset: string;
+  code: string;
+  shares: number;
+  price: number;
+  market_value?: number;
+  average_cost?: number | null;
+  is_equity: boolean;
+}
+
+export interface PortfolioSnapshotInput {
+  snapshot_date: string;
+  price_date: string;
+  new_money: number;
+  account_cash: number;
+  bond_pool_cash: number;
+  reverse_repo_cash: number;
+  equity_pending_cash: number;
+  positions: PortfolioPositionInput[];
+}
+
+export interface TradePlanPreviewRequest {
+  snapshot: PortfolioSnapshotInput;
+}
+
+export interface TradeOrder {
+  side: 'BUY' | 'SELL';
+  asset: string;
+  code: string;
+  reason_codes: string[];
+  shares: number;
+  reference_price: number;
+  estimated_price: number;
+  gross_amount: number;
+  commission: number;
+  slippage_cost: number;
+  cash_effect: number;
+  mandatory: boolean;
+  shadow: boolean;
+  allocation_stages: string[];
+  // 各分配阶段给本资产分到的金额明细 {stage: amount}（仅 BUY 单有）
+  stage_breakdown?: Record<string, number>;
+}
+
+export interface PortfolioExposure {
+  total_assets: number;
+  managed_total: number;
+  managed_weights: Record<string, number>;
+  group_weights: Record<string, number>;
+  account_equity_ratio: number;
+  defense_ratio: number;
+  unknown_value: number;
+}
+
+export interface TradeCashLedger {
+  opening_cash: number;
+  new_money: number;
+  sell_net_proceeds: number;
+  buy_cash_outflow: number;
+  closing_cash: number;
+  bond_pool_before: number;
+  bond_pool_deposit: number;
+  bond_pool_released: number;
+  bond_pool_after: number;
+  equity_pending_before: number;
+  equity_pending_after: number;
+  free_cash_after: number;
+  total_commission: number;
+  total_slippage: number;
+  cash_identity_error: number;
+}
+
+export interface TradePlan {
+  plan_id: string;
+  snapshot_date: string;
+  phase: 'complete' | 'sell_preview' | string;
+  formal_sells: TradeOrder[];
+  shadow_sells: TradeOrder[];
+  buys: TradeOrder[];
+  warnings: string[];
+  before: PortfolioExposure;
+  after: PortfolioExposure;
+  cash_ledger: TradeCashLedger | null;
+  pending_buy_recalculation: boolean;
+  legacy_allocation_only: boolean;
+}
+
+export interface ProfitProtectionThresholds {
+  activation_return: number;
+  drawdown_trigger: number;
+  off_months_exit: number;
+  partial_sell_fraction: number;
+}
+
+export interface ProfitProtectionStatus {
+  mode: 'shadow' | 'live' | string;
+  active: boolean;
+  cycle_id: number;
+  high_watermark: number;
+  off_months: number;
+  on_months: number;
+  pending_trigger: string | null;
+  profit_return: number | null;
+  drawdown_from_high: number | null;
+  activated_this_month: boolean;
+  trend_on: boolean;
+  opportunity_score: number | null;
+  triggered: boolean;
+  trigger_reason_codes: string[];
+  thresholds: ProfitProtectionThresholds;
+}
+
+export interface TradePlanPreviewResponse {
+  snapshot_total_assets: number;
+  trade_plan: TradePlan;
+  protection_status: ProfitProtectionStatus;
+  read_only: boolean;
+}
+
+export type SnapshotFieldSource = 'ocr' | 'deepseek' | 'local_parser' | 'market_data' | 'user' | 'missing' | string;
+
+export interface SnapshotImportField<T = number | string> {
+  value: T | null;
+  confidence: number;
+  source: SnapshotFieldSource;
+  evidence: string;
+  value_date: string | null;
+}
+
+export interface SnapshotImportPosition {
+  asset: SnapshotImportField<string>;
+  code: SnapshotImportField<string>;
+  shares: SnapshotImportField<number>;
+  price: SnapshotImportField<number>;
+  average_cost: SnapshotImportField<number>;
+  market_value: SnapshotImportField<number>;
+  is_equity: boolean;
+  warnings: string[];
+}
+
+export interface SnapshotImportDraft {
+  snapshot_date: SnapshotImportField<string>;
+  account_cash: SnapshotImportField<number>;
+  positions: SnapshotImportPosition[];
+}
+
+export interface OcrTextSegment {
+  name: string;
+  text: string;
+  ocr_confidence?: number | null;
+}
+
+export interface SnapshotImportRequest {
+  snapshot_date?: string;
+  ocr_texts: OcrTextSegment[];
+}
+
+export interface SnapshotImportResponse {
+  draft: SnapshotImportDraft;
+  provider: 'deepseek' | 'local_parser' | string;
+  model: string | null;
+  warnings: string[];
+  input_characters: number;
+  read_only: boolean;
+  image_uploaded: boolean;
+}
+
+export interface SnapshotOcrConfig {
+  deepseek_enabled: boolean;
+  structuring_provider: 'deepseek' | 'local_parser' | string;
+  model: string | null;
+  image_upload: false;
+  ocr_location: 'browser' | string;
+  accepted_image_types: string[];
+  max_files: number;
+  max_file_bytes: number;
+  max_total_bytes: number;
+  max_segment_characters: number;
+  max_total_characters: number;
+  privacy_notice: string;
+}
+
 export const INDEX_MAP: Record<string, { name: string; code: string }> = {
   沪深300: { name: '沪深300', code: '000300' },
   中证白酒: { name: '中证白酒', code: '399997' },

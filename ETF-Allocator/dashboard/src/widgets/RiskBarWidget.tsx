@@ -14,11 +14,11 @@ export function RiskBarWidget({ valueWeight, valueCap, growthWeight, growthCap }
       <ProgressBar
         value={valueWeight}
         max={valueCap}
-        label={`VALUE 组（白酒+银行+红利+沪深300）`}
+        label={`VALUE 组（白酒+银行+红利）`}
         showPercent
         color="auto"
         height={10}
-        info={`因子组约束 · 防伪分散\nVALUE组上限=${Math.round(valueCap*100)}%\n超限→组内等比缩减，溢出进国债\n公式：组权重 = Σ 组内各资产权重`}
+        info={`因子组约束 · 防伪分散\nVALUE组上限=${Math.round(valueCap*100)}%\n沪深300独立为CORE（上限30%）\n公式：组权重 = Σ 组内各资产权重`}
       />
       <div className="mt-4">
         <ProgressBar
@@ -28,7 +28,7 @@ export function RiskBarWidget({ valueWeight, valueCap, growthWeight, growthCap }
           showPercent
           color="auto"
           height={10}
-          info={`因子组约束 · 防单一成长\nGROWTH组上限=${Math.round(growthCap*100)}%\n超限→缩减，溢出进国债`}
+          info={`因子组约束 · 防单一成长\nGROWTH组上限=${Math.round(growthCap*100)}%\n无法成交的权益预算保留为权益待投现金`}
         />
       </div>
       <div className="text-xs text-[#9CA3AF] mt-3 flex items-center gap-1">

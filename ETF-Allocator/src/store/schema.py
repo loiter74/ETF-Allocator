@@ -7,7 +7,7 @@ from typing import Optional
 
 from src.store.normalization import normalize_dividend_yield, normalize_iso_date
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 DDL = """
 -- 指数元信息：基日 vs 发布日，用于识别"回填段"
@@ -80,6 +80,70 @@ CREATE TABLE IF NOT EXISTS investment_record_item (
     amount_cents INTEGER NOT NULL CHECK (amount_cents >= 0),
     PRIMARY KEY (record_id, asset),
     FOREIGN KEY (record_id) REFERENCES investment_record(id) ON DELETE CASCADE
+);
+
+-- 券商月度持仓快照：仅显式确认时写入，预览接口保持只读
+CREATE TABLE IF NOT EXISTS portfolio_snapshot (
+    id                       INTEGER PRIMARY KEY AUTOINCREMENT,
+    snapshot_date            DATE NOT NULL,
+    price_date               DATE NOT NULL,
+    new_money_cents          INTEGER NOT NULL CHECK (new_money_cents >= 0),
+    account_cash_cents       INTEGER NOT NULL CHECK (account_cash_cents >= 0),
+    bond_pool_cash_cents     INTEGER NOT NULL CHECK (bond_pool_cash_cents >= 0),
+    reverse_repo_cash_cents  INTEGER NOT NULL CHECK (reverse_repo_cash_cents >= 0),
+    equity_pending_cents     INTEGER NOT NULL CHECK (equity_pending_cents >= 0),
+    sell_proceeds_cents      INTEGER NOT NULL CHECK (sell_proceeds_cents >= 0),
+    total_assets_cents       INTEGER NOT NULL CHECK (total_assets_cents >= 0),
+    created_at               TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_portfolio_snapshot_date
+ON portfolio_snapshot (snapshot_date DESC, id DESC);
+
+CREATE TABLE IF NOT EXISTS portfolio_snapshot_item (
+    snapshot_id   INTEGER NOT NULL,
+    asset         TEXT NOT NULL,
+    code          TEXT NOT NULL,
+    shares        REAL NOT NULL CHECK (shares >= 0),
+    price         REAL NOT NULL CHECK (price >= 0),
+    market_value  REAL NOT NULL CHECK (market_value >= 0),
+    average_cost  REAL,
+    is_equity     INTEGER NOT NULL CHECK (is_equity IN (0, 1)),
+    PRIMARY KEY (snapshot_id, asset, code),
+    FOREIGN KEY (snapshot_id) REFERENCES portfolio_snapshot(id) ON DELETE CASCADE
+);
+
+-- 月频策略状态使用JSON保存，便于状态机字段向后兼容
+CREATE TABLE IF NOT EXISTS strategy_state (
+    strategy_name TEXT PRIMARY KEY,
+    state_json    TEXT NOT NULL,
+    version       INTEGER NOT NULL DEFAULT 1,
+    updated_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+-- 幂等确认同时保存输入快照、成交和最终响应，重复请求不会重复记账
+CREATE TABLE IF NOT EXISTS trade_plan_confirmation (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    plan_id          TEXT NOT NULL,
+    idempotency_key  TEXT NOT NULL UNIQUE,
+    snapshot_id      INTEGER NOT NULL,
+    response_json    TEXT NOT NULL,
+    confirmed_at     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    FOREIGN KEY (snapshot_id) REFERENCES portfolio_snapshot(id) ON DELETE RESTRICT
+);
+
+CREATE INDEX IF NOT EXISTS idx_trade_plan_confirmation_plan
+ON trade_plan_confirmation (plan_id, confirmed_at DESC);
+
+CREATE TABLE IF NOT EXISTS trade_fill (
+    confirmation_id INTEGER NOT NULL,
+    asset            TEXT NOT NULL,
+    side             TEXT NOT NULL CHECK (side IN ('BUY', 'SELL')),
+    shares           REAL NOT NULL CHECK (shares > 0),
+    price            REAL NOT NULL CHECK (price > 0),
+    commission       REAL NOT NULL CHECK (commission >= 0),
+    PRIMARY KEY (confirmation_id, asset, side),
+    FOREIGN KEY (confirmation_id) REFERENCES trade_plan_confirmation(id) ON DELETE CASCADE
 );
 """
 

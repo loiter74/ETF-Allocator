@@ -34,7 +34,11 @@ from config.settings import (
     WINDOW_PE_PERCENTILE_YEARS,
 )
 from src.store.schema import create_tables
-from src.backtest.engine import run_backtest
+from src.backtest.engine import (
+    run_backtest,
+    run_sensitivity_analysis,
+    run_strategy_comparison,
+)
 from src.backtest.parameter_lock import verify_snapshot, write_snapshot
 
 
@@ -290,18 +294,36 @@ def print_test_results(results: dict) -> None:
     print(f"  最大回撤: {m.get('max_drawdown', 0):.2%}" if m.get("max_drawdown") else "  最大回撤: N/A")
     print(f"  夏普比率: {m.get('sharpe', 0):.2f}" if m.get("sharpe") else "  夏普比率: N/A")
     print(f"  Calmar: {m.get('calmar', 0):.2f}" if m.get("calmar") else "  Calmar: N/A")
-    print()
-    print("  测试期指标解读:")
-    c = m.get('calmar')
-    if c is None:
-        print("    ? 数据不足，无法计算 Calmar")
-    elif c > 1.0:
-        print("    [OK] Calmar > 1.0: 收益覆盖回撤，策略有效")
-    elif c > 0.5:
-        print("    [INFO] Calmar 0.5~1.0: 策略有一定效果，可继续优化")
-    else:
-        print("    [FAIL] Calmar < 0.5: 回撤过大或收益不足，需反思参数")
     print("=" * 60)
+
+
+def print_strategy_comparison(comparison: dict) -> None:
+    """Print four pre-registered variants and the shadow/live acceptance gates."""
+    print()
+    print("=" * 88)
+    print("  四策略测试期对照（净交易成本口径）")
+    print("=" * 88)
+    print(f"  {'策略':<28}{'年化':>10}{'最大回撤':>12}{'Calmar':>10}{'成本':>12}{'卖出':>8}")
+    for name, result in comparison["variants"].items():
+        metrics = result.get("metrics", {})
+        execution = result.get("execution", {})
+        annualized = metrics.get("annualized_return")
+        drawdown = metrics.get("max_drawdown")
+        calmar = metrics.get("calmar")
+        annualized_text = f"{annualized:.2%}" if annualized is not None else "N/A"
+        drawdown_text = f"{drawdown:.2%}" if drawdown is not None else "N/A"
+        calmar_text = f"{calmar:.2f}" if calmar is not None else "N/A"
+        print(
+            f"  {name:<28}{annualized_text:>10}{drawdown_text:>12}{calmar_text:>10}"
+            f"{execution.get('total_costs', 0):>12,.2f}{execution.get('sell_count', 0):>8}"
+        )
+    print()
+    gates = comparison["acceptance"]["gates"]
+    for gate, passed in gates.items():
+        print(f"  [{'PASS' if passed else 'FAIL'}] {gate}")
+    print(f"  科创利润保护状态: {comparison['acceptance']['profit_protection_status']}")
+    print(f"  {comparison['acceptance']['note']}")
+    print("=" * 88)
 
 
 def run_train() -> None:
@@ -349,7 +371,7 @@ def run_test() -> None:
     conn = get_db_connection()
 
     try:
-        results = run_backtest(conn, mode="test")
+        results = run_strategy_comparison(conn, mode="test")
     except Exception as e:
         print(f"[ERROR] 回测失败: {e}")
         import traceback
@@ -359,11 +381,28 @@ def run_test() -> None:
 
     conn.close()
 
-    if results.get("final_value") is None and not results.get("monthly_results"):
+    full = results.get("variants", {}).get("full_protection", {})
+    if full.get("final_value") is None and not full.get("monthly_results"):
         print("[ERROR] 回测无有效数据")
         sys.exit(1)
+    print_strategy_comparison(results)
 
-    print_test_results(results)
+
+def run_sensitivity() -> None:
+    """Run the fixed neighboring grid without changing the parameter lock."""
+    valid, detail = verify_snapshot(PARAMETER_LOCK_PATH)
+    if not valid:
+        print(f"[ERROR] {detail}")
+        sys.exit(1)
+    print(f"[LOCK] 参数校验通过: {detail}")
+    conn = get_db_connection()
+    try:
+        report = run_sensitivity_analysis(conn, mode="test")
+    finally:
+        conn.close()
+    print(f"[INFO] 敏感性组合数: {len(report['results'])}")
+    print(f"[LOCKED] 预注册参数保持不变: {report['locked_choice']}")
+    print("[INFO] selection_performed=false；测试期不选择最优参数")
 
 
 # ---- MAIN ----
@@ -372,6 +411,7 @@ if __name__ == "__main__":
         print("用法: python validate.py <mode>")
         print("  train — 训练期回测，打印参数建议")
         print("  test  — 测试期回测，使用锁定参数打印指标")
+        print("  sensitivity — 运行预注册邻近参数敏感性报告（不择优）")
         sys.exit(0)
 
     mode = sys.argv[1].lower()
@@ -380,7 +420,9 @@ if __name__ == "__main__":
         run_train()
     elif mode == "test":
         run_test()
+    elif mode == "sensitivity":
+        run_sensitivity()
     else:
         print(f"未知模式: {mode}")
-        print("可用模式: train, test")
+        print("可用模式: train, test, sensitivity")
         sys.exit(1)
