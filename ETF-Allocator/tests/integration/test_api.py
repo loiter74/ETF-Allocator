@@ -39,9 +39,11 @@ class TestAPIEndpoints:
         r = requests.get(f"{BASE_URL}/api/report", timeout=10)
         d = r.json()
 
-        # 顶层字段
-        for key in ["date", "market_temp", "portfolio_risk", "allocations"]:
+        # 顶层字段（v1.3 退役：assets 替代 allocations）
+        for key in ["date", "market_temp", "portfolio_risk", "assets"]:
             assert key in d, f"missing top-level key: {key}"
+        for removed in ["allocations", "bond_status", "allocation_summary"]:
+            assert removed not in d, f"GET report should not return decision field {removed}"
 
         # 温度计字段
         mt = d["market_temp"]
@@ -53,11 +55,11 @@ class TestAPIEndpoints:
         for key in ["value_group_weight", "value_group_cap", "growth_group_weight", "growth_group_cap", "next_rebalance_date"]:
             assert key in pr, f"missing portfolio_risk key: {key}"
 
-        # 分配列表
-        assert len(d["allocations"]) == 6, f"expected 6 allocations, got {len(d['allocations'])}"
-        a0 = d["allocations"][0]
-        for key in ["asset", "amount", "current_weight", "upper_limit", "opportunity_score", "trigger_reason"]:
-            assert key in a0, f"allocations[0] missing: {key}"
+        # 资产列表（含因子详情，不再有 amount）
+        assert len(d["assets"]) == 6, f"expected 6 assets, got {len(d['assets'])}"
+        a0 = d["assets"][0]
+        for key in ["name", "code", "score", "weight_current", "weight_upper", "trigger_reason"]:
+            assert key in a0, f"assets[0] missing: {key}"
 
     def test_get_report_equity_bond_sum_to_1(self):
         r = requests.get(f"{BASE_URL}/api/report", timeout=10)
@@ -83,6 +85,8 @@ class TestAPIEndpoints:
         assert r.status_code == 200
 
     def test_post_report_has_before_after_weights(self):
+        # v1.3 退役：POST report 委托 GET，不再返回 before/after_weights
+        # 改为验证 POST 返回与 GET 相同的市场状态结构
         payload = {
             "date": "2026-06-01", "new_money": 10000, "total_assets": 200000,
             "current_weights": {
@@ -92,16 +96,14 @@ class TestAPIEndpoints:
         }
         r = requests.post(f"{BASE_URL}/api/report", json=payload, timeout=10)
         d = r.json()
-        assert "before_weights" in d
-        assert "after_weights" in d
-        # 权重和应为 1.0
-        bw = sum(d["before_weights"].values())
-        aw = sum(d["after_weights"].values())
-        assert abs(bw - 1.0) < 0.01, f"before_weights sum: {bw}"
-        assert abs(aw - 1.0) < 0.01, f"after_weights sum: {aw}"
+        assert "market_temp" in d
+        assert "assets" in d
+        # 不应返回决策字段
+        assert "before_weights" not in d
+        assert "allocations" not in d
 
     def test_post_report_total_changes(self):
-        """模拟后总资产应增加 new_money。"""
+        """v1.3 退役：POST 委托 GET，不再返回 new_total。验证市场状态可用即可。"""
         payload = {
             "date": "2026-06-01", "new_money": 10000, "total_assets": 200000,
             "current_weights": {
@@ -111,7 +113,8 @@ class TestAPIEndpoints:
         }
         r = requests.post(f"{BASE_URL}/api/report", json=payload, timeout=10)
         d = r.json()
-        assert d["new_total"] == pytest.approx(210000, rel=0.01)
+        assert "new_total" not in d  # v1.3 退役后不再有此字段
+        assert d["market_temp"]["equity_ratio"] >= 0  # 市场状态可用
 
     def test_get_history_returns_data(self):
         r = requests.get(f"{BASE_URL}/api/history?index=000300&field=pe&years=5", timeout=10)
