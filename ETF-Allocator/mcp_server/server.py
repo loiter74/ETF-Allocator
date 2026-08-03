@@ -197,7 +197,7 @@ def get_monthly_report(
         total_assets: 当前组合总资产（元）。0=初始建仓模式（目标权重归零）。
 
     Returns:
-        报告 JSON：market_temp / allocations / portfolio_risk / bond_status 等。
+        报告 JSON：market_temp / assets / portfolio_risk / warnings 等（v1.3 退役后不含决策字段）。
     """
     params: dict[str, Any] = {}
     if report_date:

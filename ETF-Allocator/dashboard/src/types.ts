@@ -16,68 +16,33 @@ export interface PortfolioRisk {
   next_rebalance_date: string;
 }
 
-export interface AllocationItem {
-  asset: string;
+/** v1.3 退役后单个资产的状态条目（GET /api/report → assets[]）。
+ *  仅提供市场状态与估值/因子分位，不再提供分配金额。 */
+export interface AssetItem {
+  name: string;
   code?: string;
-  amount: number;
-  current_weight: number;
-  upper_limit: number;
-  opportunity_score: number | null;
-  trigger_reason: string;
-}
-
-export interface AllocationSummary {
-  asset: string;
-  amount: number;
-  percentage: number;
   factor_group: string;
-}
-
-/** 国债累积池状态（BondAccumulator 输出） */
-export interface BondStatus {
-  balance: number;             // 累积池当前余额（模拟存入后；预演值）
-  min_purchase: number;        // 最低买入门槛 (14,000)
-  total_interest: number;      // 累计逆回购利息
-  can_buy: boolean;            // 本月是否可触发购买
-  lots_available: number;      // 可买手数
-  deposit_this_month: number;  // 本月存入金额
-  interest_this_month: number; // 本月利息
-  action_buy: boolean;         // 本月实际是否执行了购买
-  action_lots: number;         // 本月购买手数
-  action_amount: number;       // 本月购买金额
-  // 真实状态（未模拟，来自持久化文件）—— 面板同时展示真实 + 预演
-  current_balance?: number;      // 真实累积池余额
-  current_total_interest?: number; // 真实累计利息
+  score: number | null;
+  weight_current: number;
+  weight_upper: number;
+  weight_lower: number;
+  pe_percentile?: number | null;
+  pb_percentile?: number | null;
+  dividend_percentile?: number | null;
+  momentum_percentile?: number | null;
+  volatility?: number | null;
+  trend_multiplier?: number | null;
+  trigger_reason: string;
 }
 
 export interface MonthlyReport {
   date: string;
-  new_money?: number;
-  total_assets?: number;
   market_temp: MarketThermometer;
   portfolio_risk: PortfolioRisk;
-  allocations: AllocationItem[];
-  allocation_summary?: AllocationSummary[];
+  assets: AssetItem[];
   warnings?: string[];
-  bond_status?: BondStatus;
-}
-
-export interface SimulateRequest {
-  date: string;
-  new_money: number;
-  total_assets: number;
-  current_weights: Record<string, number>;
-}
-
-export interface SimulateResponse {
-  date: string;
-  new_money: number;
-  total_assets: number;
-  new_total: number;
-  allocations: AllocationItem[];
-  before_weights: Record<string, number>;
-  after_weights: Record<string, number>;
-  bond_status?: BondStatus;
+  _divergence_check?: boolean;
+  _divergence_note?: string;
 }
 
 export interface HistoryPoint {

@@ -1,7 +1,7 @@
 [project]
 name = "etf-allocator"
-version = "0.1.0"
-description = "ETF 新增资金配置系统 — V1.2"
+version = "0.2.0"
+description = "ETF 低频再平衡系统 — V2 候选"
 requires-python = ">=3.10"
 dependencies = [
     "akshare>=1.12.0",

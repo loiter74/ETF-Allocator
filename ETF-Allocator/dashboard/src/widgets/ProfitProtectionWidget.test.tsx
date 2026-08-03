@@ -1,7 +1,14 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SnapshotImportResponse, TradePlanPreviewResponse } from '../types';
+import { useTradePlanPreview } from '../hooks/useTradePlan';
 import { ProfitProtectionWidget } from './ProfitProtectionWidget';
+
+// 创建一个真实的 tradePlan hook 实例用于测试（widget 现在接收 props 而非内部调 hook）
+function TestWidget() {
+  const tradePlan = useTradePlanPreview();
+  return <ProfitProtectionWidget tradePlan={tradePlan} />;
+}
 
 function jsonResponse(payload: unknown, status = 200): Response {
   return new Response(JSON.stringify(payload), {
@@ -118,7 +125,7 @@ beforeEach(() => {
 describe('ProfitProtectionWidget', () => {
   it('submits a complete position snapshot and renders the shadow profit order', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(previewResponse()));
-    render(<ProfitProtectionWidget />);
+    render(<TestWidget />);
 
     fireEvent.change(screen.getByLabelText('科创50ETF份额'), { target: { value: '600' } });
     fireEvent.change(screen.getByLabelText('科创50ETF当前价格'), { target: { value: '1.04' } });
@@ -149,7 +156,7 @@ describe('ProfitProtectionWidget', () => {
 
   it('blocks a snapshot with shares but no current price before calling the API', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch');
-    render(<ProfitProtectionWidget />);
+    render(<TestWidget />);
 
     fireEvent.change(screen.getByLabelText('科创50ETF份额'), { target: { value: '600' } });
     fireEvent.click(screen.getByRole('button', { name: '扫描盈利与交易计划' }));
@@ -162,7 +169,7 @@ describe('ProfitProtectionWidget', () => {
 
   it('keeps shadow mode visibly distinct from an executable sell', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async () => jsonResponse(previewResponse()));
-    render(<ProfitProtectionWidget />);
+    render(<TestWidget />);
 
     fireEvent.click(screen.getByRole('button', { name: '扫描盈利与交易计划' }));
 
@@ -179,7 +186,7 @@ describe('ProfitProtectionWidget', () => {
       if (url.includes('ocr-config')) return jsonResponse({ image_upload: false, ocr_location: 'browser' });
       return jsonResponse({}, 500);
     });
-    render(<ProfitProtectionWidget />);
+    render(<TestWidget />);
 
     fireEvent.change(screen.getByLabelText('OCR文字'), { target: { value: '科创50ETF 持仓份额600 现价1.04 成本0.8' } });
     fireEvent.click(screen.getByRole('button', { name: '整理粘贴文字' }));

@@ -21,7 +21,6 @@ function jsonResponse(payload: unknown, status = 200): Response {
 function makeReport(status: string, growthWeight = 0.1): MonthlyReport {
   return {
     date: '2026-07-12',
-    new_money: 8000,
     market_temp: {
       hs300_pe_percentile: 0.72,
       all_a_pb_percentile: 0.68,
@@ -36,13 +35,14 @@ function makeReport(status: string, growthWeight = 0.1): MonthlyReport {
       growth_group_cap: 0.15,
       next_rebalance_date: '',
     },
-    allocations: [{
-      asset: '国债ETF',
+    assets: [{
+      name: '国债ETF',
       code: '511010',
-      amount: 2400,
-      current_weight: 0.3,
-      upper_limit: 1,
-      opportunity_score: null,
+      factor_group: 'BOND',
+      score: null,
+      weight_current: 0.3,
+      weight_upper: 1,
+      weight_lower: 0.1,
       trigger_reason: '国债避险配置',
     }],
   };
@@ -50,28 +50,28 @@ function makeReport(status: string, growthWeight = 0.1): MonthlyReport {
 
 describe('frontend bug regressions', () => {
   it('does not label a normal thermometer result as frozen', () => {
-    const { rerender } = render(<ExportPanel report={makeReport('mild_cool')} onCopy={vi.fn()} onShare={vi.fn()} />);
+    const { rerender } = render(<ExportPanel report={makeReport('mild_cool')} buyByAsset={new Map()} newMoney={0} hasPreview={false} onCopy={vi.fn()} onShare={vi.fn()} />);
     expect(screen.queryByText(/温度计冻结/)).not.toBeInTheDocument();
 
-    rerender(<ExportPanel report={makeReport('frozen')} onCopy={vi.fn()} onShare={vi.fn()} />);
+    rerender(<ExportPanel report={makeReport('frozen')} buyByAsset={new Map()} newMoney={0} hasPreview={false} onCopy={vi.fn()} onShare={vi.fn()} />);
     expect(screen.getByText(/温度计冻结/)).toBeInTheDocument();
   });
 
   it('shows a growth limit warning even when the value group is below its limit', () => {
-    render(<ExportPanel report={makeReport('mild_cool', 0.14)} onCopy={vi.fn()} onShare={vi.fn()} />);
+    render(<ExportPanel report={makeReport('mild_cool', 0.14)} buyByAsset={new Map()} newMoney={0} hasPreview={false} onCopy={vi.fn()} onShare={vi.fn()} />);
     expect(screen.getByText(/成长组上限/)).toBeInTheDocument();
     expect(screen.queryByText(/价值组上限/)).not.toBeInTheDocument();
   });
 
-  it('renders a bond allocation when bond accumulator state is absent', () => {
-    render(<AllocationCardsWidget allocations={{
+  it('renders a bond asset card showing the preview buy amount', () => {
+    render(<AllocationCardsWidget assets={{
       国债ETF: {
         amount: 2400,
         triggerReason: '国债避险配置',
         opportunityScore: null,
         code: '511010',
       },
-    }} />);
+    }} hasPreview />);
     expect(screen.getByText('¥2,400')).toBeInTheDocument();
   });
 

@@ -1,8 +1,19 @@
 
 import type { MonthlyReport } from '../types';
 
+interface BuyInfo {
+  amount: number;
+  reason: string;
+}
+
 interface Props {
   report: MonthlyReport;
+  /** preview 买单按资产名索引（金额来源）；无 preview 时为空 Map。 */
+  buyByAsset: Map<string, BuyInfo>;
+  /** 本月新增资金（来自 preview 现金账本）。无 preview 时为 0。 */
+  newMoney: number;
+  /** 是否存在 preview；false 时隐藏金额列与新增资金卡片。 */
+  hasPreview: boolean;
   onCopy: () => void;
   onShare: () => void;
 }
@@ -15,7 +26,7 @@ const scoreColor = (s: number | null): string => {
   return '#EF4444';
 };
 
-export function ExportPanel({ report, onCopy, onShare }: Props) {
+export function ExportPanel({ report, buyByAsset, newMoney, hasPreview, onCopy, onShare }: Props) {
   if (!report) return null;
   const t = report.market_temp;
   const risk = report.portfolio_risk;
@@ -25,18 +36,6 @@ export function ExportPanel({ report, onCopy, onShare }: Props) {
   const eqPct = Math.round(t.equity_ratio * 100);
   const rebDate = risk?.next_rebalance_date ?? '';
   const deviation = eqPct - 50;
-
-  // 计算权益缺口
-  const newMoney = report.new_money ?? 0;
-  const targetEquity = newMoney * t.equity_ratio;
-  const actualEquity = report.allocations
-    .filter(a => a.asset !== '国债ETF')
-    .reduce((sum, allocation) => sum + Math.round(allocation.amount), 0);
-  const equityGap = targetEquity - actualEquity;
-  const hasGap = equityGap > 10;
-
-  const curWt: Record<string, number> = {};
-  for (const a of report.allocations) curWt[a.asset] = a.current_weight ?? 0;
 
   return (
     <div className="space-y-3 text-sm">
@@ -65,7 +64,7 @@ export function ExportPanel({ report, onCopy, onShare }: Props) {
         <div className="bg-blue-50 rounded-xl p-3 text-center">
           <div className="text-[10px] text-[#6B7280] mb-1">新增资金</div>
           <div className="text-lg font-bold text-[#2563EB]">
-            ¥{(report.new_money ?? 0).toLocaleString()}
+            {hasPreview ? `¥${newMoney.toLocaleString()}` : '—'}
           </div>
         </div>
       </div>
@@ -80,34 +79,16 @@ export function ExportPanel({ report, onCopy, onShare }: Props) {
         </div>
       )}
 
-      {/* Equity Gap: 温度计 vs 约束后 */}
-      {hasGap && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-1.5 text-xs">
-          <div className="flex justify-between items-center">
-            <span className="text-amber-700">🌡️ 温度计建议权益</span>
-            <span className="nums font-semibold text-amber-700">¥{targetEquity.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-amber-700">⚠️ 约束后实际权益</span>
-            <span className="nums font-semibold text-amber-700">¥{actualEquity.toLocaleString()}</span>
-          </div>
-          <div className="border-t border-amber-200 pt-1 flex justify-between items-center">
-            <span className="text-[#9CA3AF]">差额（转入国债）</span>
-            <span className="nums font-semibold text-[#9CA3AF]">+¥{equityGap.toLocaleString()}</span>
-          </div>
-        </div>
-      )}
-
       {/* Holdings */}
       <div className="bg-white rounded-xl border border-gray-100 p-3">
-        <div className="text-xs font-medium text-[#6B7280] mb-2">分配前持仓占比</div>
+        <div className="text-xs font-medium text-[#6B7280] mb-2">当前持仓占比</div>
         <div className="space-y-1.5">
-          {report.allocations.map(a => {
-            const name = a.asset.replace('ETF', '');
-            const wt = curWt[a.asset] ?? 0;
+          {report.assets.map(a => {
+            const name = a.name.replace('ETF', '');
+            const wt = a.weight_current ?? 0;
             const hasData = wt > 0;
             return (
-              <div key={a.asset} className="flex items-center gap-2">
+              <div key={a.name} className="flex items-center gap-2">
                 <span className="w-12 text-xs text-[#374151] shrink-0">{name}</span>
                 <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
                   {hasData ? (
@@ -125,26 +106,27 @@ export function ExportPanel({ report, onCopy, onShare }: Props) {
 
       {/* Allocation */}
       <div className="bg-white rounded-xl border border-gray-100 p-3">
-        <div className="text-xs font-medium text-[#6B7280] mb-2">本月分配建议</div>
+        <div className="text-xs font-medium text-[#6B7280] mb-2">{hasPreview ? '本月补仓买单' : '本月资产机会分'}</div>
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-gray-100 text-[#9CA3AF]">
               <th className="text-left py-1.5 w-6">#</th>
               <th className="text-left py-1.5">资产</th>
               <th className="text-center py-1.5 w-10">分</th>
-              <th className="text-right py-1.5 w-20">金额</th>
+              {hasPreview && <th className="text-right py-1.5 w-20">金额</th>}
               <th className="text-left py-1.5 hidden sm:table-cell">因子</th>
             </tr>
           </thead>
           <tbody>
-            {report.allocations.map((a, i) => {
-              const name = a.asset.replace('ETF', '');
-              const amt = Math.round(a.amount);
-              const score = a.opportunity_score;
+            {report.assets.map((a, i) => {
+              const name = a.name.replace('ETF', '');
+              const score = a.score;
               const sc = score != null ? Math.round(score * 100) : null;
-              const excluded = amt === 0 && score != null && score < 0.20;
+              const buy = buyByAsset.get(a.name);
+              const amt = buy ? Math.round(buy.amount) : 0;
+              const excluded = score != null && score < 0.20;
               return (
-                <tr key={a.asset} className={`border-b border-gray-50 ${excluded ? 'opacity-50' : ''} ${amt > 0 ? 'bg-purple-50/30' : ''}`}>
+                <tr key={a.name} className={`border-b border-gray-50 ${excluded ? 'opacity-50' : ''} ${hasPreview && amt > 0 ? 'bg-purple-50/30' : ''}`}>
                   <td className="py-2 text-[#9CA3AF]">{i + 1}</td>
                   <td className="py-2 font-medium text-[#1F2937]">
                     {name}
@@ -159,11 +141,14 @@ export function ExportPanel({ report, onCopy, onShare }: Props) {
                       <span className="text-[#D1D5DB]">—</span>
                     )}
                   </td>
-                  <td className={`py-2 text-right nums font-semibold ${amt > 0 ? 'text-[#1F2937]' : 'text-[#D1D5DB]'}`}>
-                    {amt > 0 ? `¥${amt.toLocaleString()}` : '—'}
-                    {excluded && <span className="ml-1 text-[10px] text-[#EF4444]">⛔</span>}
+                  {hasPreview && (
+                    <td className={`py-2 text-right nums font-semibold ${amt > 0 ? 'text-[#1F2937]' : 'text-[#D1D5DB]'}`}>
+                      {amt > 0 ? `¥${amt.toLocaleString()}` : '—'}
+                    </td>
+                  )}
+                  <td className="py-2 text-[#6B7280] hidden sm:table-cell text-xs">
+                    {buy?.reason ?? a.trigger_reason ?? (a.name === '国债ETF' ? '避险配置' : '')}
                   </td>
-                  <td className="py-2 text-[#6B7280] hidden sm:table-cell text-xs">{a.trigger_reason || (a.asset === '国债ETF' ? '避险配置' : '')}</td>
                 </tr>
               );
             })}

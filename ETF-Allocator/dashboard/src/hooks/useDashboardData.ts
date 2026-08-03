@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import type { MonthlyReport, HistoryResponse, BondStatus } from '../types';
+import type { MonthlyReport, HistoryResponse } from '../types';
 import { formatLocalDate } from '../lib/utils';
 
 const BASE = '/api';
@@ -18,8 +18,8 @@ export interface DashboardData {
     allAPB: number | null;
     label: string;
   };
-  allocationData: {
-    allocations: Record<string, { amount: number; triggerReason: string; opportunityScore: number | null; code?: string }>;
+  assetData: {
+    assets: Record<string, { triggerReason: string; score: number | null; code?: string }>;
   };
   equityRingData: {
     equityRatio: number;
@@ -32,7 +32,6 @@ export interface DashboardData {
     growthCap: number;
   };
   scores: Record<string, number | null>;
-  bondStatus: BondStatus | null;
   activityLog: { date: string; summary: string }[];
   valuationHistory: { date: string; pePercentile: number | null; pbPercentile: number | null }[];
 }
@@ -41,11 +40,10 @@ function emptyDashboardData(): DashboardData {
   return {
     report: null, loading: true, error: null, refetch: () => {},
     thermometerData: { equityRatio: 0, hs300PE: null, allAPB: null, label: '加载中...' },
-    allocationData: { allocations: {} },
+    assetData: { assets: {} },
     equityRingData: { equityRatio: 0, bondRatio: 0 },
     riskData: { valueWeight: 0, valueCap: 0.6, growthWeight: 0, growthCap: 0.15 },
     scores: {},
-    bondStatus: null,
     activityLog: [],
     valuationHistory: [],
   };
@@ -54,12 +52,12 @@ function emptyDashboardData(): DashboardData {
 function transformReport(r: MonthlyReport): Partial<DashboardData> {
   const temp = r.market_temp;
   const risk = r.portfolio_risk;
-  const allocs: Record<string, { amount: number; triggerReason: string; opportunityScore: number | null; code?: string }> = {};
+  const assets: Record<string, { triggerReason: string; score: number | null; code?: string }> = {};
   const scores: Record<string, number | null> = {};
 
-  for (const a of r.allocations) {
-    allocs[a.asset] = { amount: a.amount, triggerReason: a.trigger_reason, opportunityScore: a.opportunity_score, code: a.code };
-    scores[a.asset] = a.opportunity_score;
+  for (const a of r.assets) {
+    assets[a.name] = { triggerReason: a.trigger_reason, score: a.score, code: a.code };
+    scores[a.name] = a.score;
   }
 
   const statusLabels: Record<string, string> = {
@@ -75,7 +73,7 @@ function transformReport(r: MonthlyReport): Partial<DashboardData> {
       allAPB: temp.all_a_pb_percentile,
       label: statusLabels[temp.status] ?? temp.status,
     },
-    allocationData: { allocations: allocs },
+    assetData: { assets },
     equityRingData: { equityRatio: temp.equity_ratio, bondRatio: temp.bond_ratio },
     riskData: {
       valueWeight: risk.value_group_weight,
@@ -84,7 +82,6 @@ function transformReport(r: MonthlyReport): Partial<DashboardData> {
       growthCap: risk.growth_group_cap,
     },
     scores,
-    bondStatus: r.bond_status ?? null,
   };
 }
 
@@ -112,22 +109,17 @@ export function useDashboardData(): DashboardData {
         setLoading(false);
         setError(null);
 
-        // 累积活动日志：每次 API 查询更新本条日期状态
-        if (json.allocations.length > 0) {
+        // 累积活动日志：每次 API 查询更新本条日期状态。
+        // v1.3 退役后 GET report 不再带分配金额，活动日志改为基于 assets（有因子分的数据）。
+        if (json.assets.length > 0) {
           const mkt = json.market_temp;
           const equityPct = Math.round(mkt.equity_ratio * 100);
-          const targetEquity = (json.new_money ?? 0) * mkt.equity_ratio;
-          const actualEquity = json.allocations
-            .filter(a => a.asset !== '国债ETF')
-            .reduce((sum, allocation) => sum + allocation.amount, 0);
-          const gap = targetEquity - actualEquity;
-          const activeCount = json.allocations.filter(a => a.amount > 0).length;
+          const scoredCount = json.assets.filter(a => a.score != null && a.name !== '国债ETF').length;
           const labels: Record<string, string> = {
             cool: '估值合理', mild_cool: '中等偏高', strong_cool: '明显偏贵', overheat: '极端过热', frozen: '温度冻结',
           };
           const statusLabel = labels[mkt.status] ?? mkt.status;
-          const gapStr = gap > 10 ? ` | 约束截留 ¥${Math.round(gap).toLocaleString()}` : '';
-          const summary = `查询成功 · 权益 ${equityPct}% · ${statusLabel} · ${activeCount} 项分配${gapStr}`;
+          const summary = `查询成功 · 权益 ${equityPct}% · ${statusLabel} · ${scoredCount} 项有因子分`;
           setActivityLog(prev => {
             const idx = prev.findIndex(e => e.date === json.date);
             if (idx >= 0) {
